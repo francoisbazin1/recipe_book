@@ -282,7 +282,7 @@
       <path d="M42 16v32"/>
     </g>
   </svg>
-  <h1 id="appTitle" title="Tap to personalise">Recipe Book<small id="subGreet">Keep the good ones</small></h1>
+  <h1 id="appTitle" title="Tap to rename">Recipe Book<small id="subGreet">Keep the good ones</small></h1>
   <button class="iconbtn" id="themeBtn" title="Light / dark">🌙</button>
 </header>
 
@@ -291,19 +291,18 @@
   <section class="tab active" id="tab-home">
     <div class="card hero">
       <div class="big" id="heroCount">–</div>
-      <div class="unit" id="heroLabel">recipes in the book</div>
+      <div class="unit" id="heroLabel">recipes</div>
     </div>
     <div class="statrow">
       <div class="card stat"><div class="v" id="statMonth">–</div><div class="l">cooked this month</div></div>
-      <div class="card stat"><div class="v" id="statFav">–</div><div class="l">4★ and up</div></div>
+      <div class="card stat"><div class="v" id="statFav">–</div><div class="l">favourites</div></div>
     </div>
 
     <button class="bigbtn" id="btnAdd">＋ Add a recipe</button>
 
     <div class="card" id="cardEmpty">
       <div class="empty" style="padding:14px 6px">
-        <span class="fl">🧁</span>Nothing in the book yet.<br>
-        Tap <b>Add a recipe</b> above. Everything stays on this phone.
+        <span class="fl">🧁</span>Nothing here yet.<br>Tap <b>Add a recipe</b>.
       </div>
     </div>
 
@@ -322,7 +321,7 @@
   <section class="tab" id="tab-recipes">
     <div class="searchwrap">
       <span class="mg">🔍</span>
-      <input type="search" id="search" placeholder="Search name or ingredient…" autocomplete="off">
+      <input type="search" id="search" placeholder="Search name or ingredient" autocomplete="off">
     </div>
     <div class="filters">
       <div id="tagWrap"><div class="flabel">Tags</div><div class="chips" id="tagFilter"></div></div>
@@ -339,7 +338,7 @@
     <div class="stars" id="dStars"></div>
     <div class="dmeta" id="dMeta"></div>
 
-    <button class="bigbtn" id="btnMade">🍽️ We made this today</button>
+    <button class="bigbtn" id="btnMade">Cooked today</button>
     <button class="cookbtn" id="btnCook"></button>
 
     <div class="card" id="cardIng">
@@ -359,54 +358,56 @@
     <div class="card" id="cardPhotos">
       <h2>PHOTOS</h2>
       <div class="shots" id="dShots"></div>
-      <button class="ghostbtn wide" id="btnAddPhoto" style="margin:0">＋ Add a photo</button>
+      <button class="ghostbtn wide" id="btnAddPhoto" style="margin:0">Add a photo</button>
     </div>
     <div class="card">
       <h2>HOW IT WENT</h2>
       <div id="dCmts"></div>
-      <button class="ghostbtn wide" id="btnAddCmt" style="margin:12px 0 0">＋ Add a comment</button>
+      <button class="ghostbtn wide" id="btnAddCmt" style="margin:12px 0 0">Add a note</button>
     </div>
     <div class="card" id="cardMade">
-      <h2>MADE ON</h2>
+      <h2>COOKED ON</h2>
       <div class="madelist" id="dMade"></div>
     </div>
-    <button class="ghostbtn wide" id="btnShare">📤 Send this recipe to someone</button>
+    <button class="ghostbtn wide" id="btnShare">Send to someone</button>
     <div class="btnrow" style="margin-bottom:16px">
-      <button class="ghostbtn" id="btnEdit">✎ Edit</button>
-      <button class="ghostbtn danger" id="btnDelete">🗑 Delete</button>
+      <button class="ghostbtn" id="btnEdit">Edit</button>
+      <button class="ghostbtn danger" id="btnDelete">Delete</button>
     </div>
   </section>
 
   <!-- SETTINGS -->
   <section class="tab" id="tab-settings">
     <div class="card">
-      <h2>READING RECIPES FROM PHOTOS</h2>
+      <h2>READING PHOTOS</h2>
       <label class="f">Your Claude key</label>
       <input type="password" id="apiKey" placeholder="Starts with sk-ant-" autocomplete="off">
       <button class="ghostbtn wide" id="btnSaveKey" style="margin-top:12px">Save it</button>
-      <div class="hint">This is what lets the app read a photo of a recipe and write it out for you.
-      Without it you can still type recipes in, and still add ones people send you. The key lives on
-      this phone only. Each recipe read costs a couple of cents.</div>
+      <div class="hint">This is what lets the app read a photo and write the recipe out.
+      Without it you can still type recipes in and add ones people send you. It stays on this
+      phone. Each one read costs a couple of cents.</div>
     </div>
     <div class="card">
-      <h2>SOMEONE SENT ME A RECIPE</h2>
+      <h2>SENT TO ME</h2>
       <textarea id="importBox" placeholder="Paste the recipe link here" style="min-height:70px"></textarea>
-      <button class="ghostbtn wide" id="btnImport" style="margin:12px 0 0">＋ Add it to my book</button>
-      <div class="hint">Tapping the link they sent usually does it on its own. Use this box if
-      tapping it did nothing, which happens on an iPhone when the app is on the home screen.</div>
+      <button class="ghostbtn wide" id="btnImport" style="margin:12px 0 0">Add it</button>
+      <div class="hint">Tapping the link usually does it on its own. Use this box if tapping
+      did nothing, which happens on an iPhone when the app is on the home screen.</div>
     </div>
     <div class="card">
       <h2>KEEPING IT SAFE</h2>
       <div class="exportrow">
-        <button class="ghostbtn" id="btnBackup">💾 Save a copy</button>
-        <button class="ghostbtn" id="btnRestore">📂 Bring a copy back</button>
-        <button class="ghostbtn" id="btnCsv">📊 As a spreadsheet</button>
+        <button class="ghostbtn" id="btnBackup">Save a copy</button>
+        <button class="ghostbtn" id="btnRestore">Bring a copy back</button>
+        <button class="ghostbtn" id="btnCsv">As a spreadsheet</button>
       </div>
-      <div class="hint">Everything lives on this phone. Save a copy now and then, and definitely before changing phones. It saves one file with everything in it, photos included. Bringing a copy back can add to what is already here rather than replacing it, so nothing gets lost. The backup includes the photos so the file can be large.</div>
+      <div class="hint">Everything lives on this phone. Do this now and then, and before changing phones. One file, photos and all, so it will not be small. Bringing a copy back can add to what is here rather than replace it.</div>
     </div>
     <div class="card">
       <h2>ABOUT</h2>
-      <div class="hint" style="margin-top:0">Tap the title at the top to call it whatever you like, name and line underneath. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
+      <div class="hint" style="margin-top:0">Tap the title at the top to call it what you like.
+      Add to Home Screen from the browser menu and it opens like any other app, with or without
+      signal.</div>
     </div>
   </section>
 </main>
@@ -428,8 +429,8 @@
 <div class="busy" id="busy">
   <div class="box">
     <span class="pot">🍲</span>
-    <div class="t" id="busyT">Reading the recipe…</div>
-    <div class="s" id="busyS">This takes ten or twenty seconds.</div>
+    <div class="t" id="busyT">Reading it…</div>
+    <div class="s" id="busyS">Ten or twenty seconds.</div>
   </div>
 </div>
 
@@ -634,7 +635,7 @@ const shotsPut = (id, shots) => imgPut(id, { v:2, shots:shots });
 function coverShot(shots){
   return shots.find(x => x.cover) || shots.find(x => x.kind === "dish") || shots[0] || null;
 }
-const SHOT_WORD = { dish:"the dish", page:"the page" };
+const SHOT_WORD = { dish:"The dish", page:"The page" };
 
 /* resize a picked file to a jpeg data URL */
 function shrink(file, maxDim, quality){
@@ -712,10 +713,10 @@ function applyName(){
   document.title = db.name || "Recipe Book";
 }
 $("appTitle").addEventListener("click", ()=>{
-  const n = prompt("Call it whatever you like. Stays on this phone.", db.name||"Recipe Book");
+  const n = prompt("Call it what you like.", db.name||"Recipe Book");
   if(n === null) return;
   db.name = n.trim();
-  const sub = prompt("And the little line underneath?", db.sub||"Keep the good ones");
+  const sub = prompt("And the line underneath?", db.sub||"Keep the good ones");
   if(sub !== null) db.sub = sub.trim();
   save(); applyName();
 });
@@ -748,7 +749,7 @@ function metaLine(r){
   const sv = servesWords(r.servings);
   if(sv) bits.push(sv);
   const lm = lastMade(r);
-  bits.push(lm ? "made " + agoWords(lm) : "not made yet");
+  bits.push(lm ? "cooked " + agoWords(lm) : "not cooked yet");
   return bits.join(" · ");
 }
 function recipeCard(r, hint){
@@ -781,7 +782,7 @@ function fillList(el, list, empty, hintFor){
 function renderHome(){
   const rs = db.recipes;
   $("heroCount").textContent = rs.length;
-  $("heroLabel").textContent = rs.length===1 ? "recipe in the book" : "recipes in the book";
+  $("heroLabel").textContent = rs.length===1 ? "recipe" : "recipes";
 
   const now = new Date(), ym = now.getFullYear()+"-"+pad(now.getMonth()+1);
   let cooked = 0;
@@ -791,7 +792,7 @@ function renderHome(){
 
   const recent = rs.filter(lastMade).sort((a,b)=> lastMade(a)<lastMade(b)?1:-1).slice(0,4);
   fillList($("recentList"), recent,
-    '<span class="fl">🥄</span>Nothing cooked yet.<br>Open a recipe and tap “We made this today”.');
+    '<span class="fl">🥄</span>Nothing cooked yet.');
   $("cardRecent").classList.toggle("hidden", !rs.length);
   $("cardEmpty").classList.toggle("hidden", rs.length > 0);
 
@@ -803,8 +804,8 @@ function renderHome(){
     return A < B ? -1 : 1;
   }).slice(0,3);
   fillList($("tryList"), older,
-    '<span class="fl">🍳</span>Add a recipe and it will turn up here.',
-    r => lastMade(r) ? "last made " + agoWords(lastMade(r)) : "never made");
+    '<span class="fl">🍳</span>Nothing here yet.',
+    r => null);
   $("cardTry").classList.toggle("hidden", rs.length < 2);
 }
 
@@ -854,10 +855,10 @@ function searchHit(r, q){
   const mth = (r.method||[]).some(m => m.toLowerCase().includes(q));
   const note = (r.notes||"").toLowerCase().includes(q);
   if(inTitle) return { ok:true, hint:null };
-  if(ing) return { ok:true, hint:"has " + ing };
-  if(tag) return { ok:true, hint:"tagged " + tag };
-  if(src) return { ok:true, hint:"from " + r.source };
-  if(mth || note) return { ok:true, hint:"mentioned in the method" };
+  if(ing) return { ok:true, hint:ing };
+  if(tag) return { ok:true, hint:tag };
+  if(src) return { ok:true, hint:r.source };
+  if(mth || note) return { ok:true, hint:"in the method" };
   return { ok:false };
 }
 function renderAll(){
@@ -874,7 +875,7 @@ function renderAll(){
   const el = $("allList"); el.innerHTML = "";
   if(!out.length){
     el.innerHTML = '<div class="empty"><span class="fl">🔎</span>' +
-      (db.recipes.length ? "Nothing matches that." : "The book is empty.<br>Scan or type your first recipe.") +
+      (db.recipes.length ? "Nothing matches." : "Nothing here yet.") +
       '</div>';
     return;
   }
@@ -1030,9 +1031,8 @@ function renderDetail(){
   const note = $("dScaleNote");
   note.classList.toggle("hidden", view.scale === 1);
   if(view.scale !== 1)
-    note.textContent = "Amounts below are " +
-      SCALES.find(x => x[0] === view.scale)[1] + " the recipe. The method still reads as written, "
-      + "and cooking times will not simply scale.";
+    note.textContent = SCALES.find(x => x[0] === view.scale)[1]
+      + " amounts. The method and the times below are unchanged.";
 
   const ing = $("dIng"); ing.innerHTML = "";
   (r.ingredients||[]).forEach((line,i)=>{
@@ -1053,7 +1053,7 @@ function renderDetail(){
 
   const cm = $("dCmts"); cm.innerHTML = "";
   const cmts = (r.comments||[]).slice().sort((a,b)=> a.d<b.d?1:-1);
-  if(!cmts.length) cm.innerHTML = '<div class="hint" style="margin:0">Nothing yet. Add a note after you cook it: too salty, needed longer, the kids liked it.</div>';
+  if(!cmts.length) cm.innerHTML = '<div class="hint" style="margin:0">Nothing yet. Add a note next time you cook it.</div>';
   cmts.forEach(c=>{
     const d = document.createElement("div");
     d.className = "cmt";
@@ -1073,8 +1073,7 @@ function drawShots(shots){
   el.innerHTML = "";
   const cover = coverShot(shots);
   if(!shots.length){
-    el.innerHTML = '<div class="hint" style="margin:0 0 2px">No pictures yet. Add one of the '
-      + 'finished dish, or of the page it came from.</div>';
+    el.innerHTML = '<div class="hint" style="margin:0 0 2px">No photos yet.</div>';
     return;
   }
   shots.forEach((sh, i)=>{
@@ -1092,11 +1091,11 @@ async function openShot(i){
   const sh = shots[i];
   if(!sh) return;
   const isCover = sh === coverShot(shots);
-  const ans = await askSheet("Picture of " + (SHOT_WORD[sh.kind] || "it"),
+  const ans = await askSheet(SHOT_WORD[sh.kind] || "Photo",
     '<img class="bigshot" src="' + (sh.full || sh.thumb) + '" alt="">',
     [].concat(
-      isCover ? [] : [{ label:"Use this as the main picture", value:"cover", primary:true }],
-      [{ label:"Delete this picture", value:"del", danger:true },
+      isCover ? [] : [{ label:"Make it the main one", value:"cover", primary:true }],
+      [{ label:"Delete", value:"del", danger:true },
        { label:"Close", value:null }]));
   if(ans === "cover"){
     shots.forEach(x => delete x.cover);
@@ -1110,9 +1109,9 @@ async function openShot(i){
   renderHome(); renderAll();
 }
 $("btnAddPhoto").addEventListener("click", async ()=>{
-  const kind = await askSheet("Add a photo", "What is it a picture of?",
-    [{ label:"\ud83c\udf7d\ufe0f The finished dish", value:"dish", primary:true },
-     { label:"\ud83d\udcd6 The page it came from", value:"page" }]);
+  const kind = await askSheet("Add a photo", "",
+    [{ label:"The dish", value:"dish", primary:true },
+     { label:"The page", value:"page" }]);
   if(!kind) return;
   shotKind = kind;
   $("fileShot").click();
@@ -1122,7 +1121,7 @@ $("fileShot").addEventListener("change", async e=>{
   const f = e.target.files[0]; e.target.value = "";
   if(!f || !view.id) return;
   const id = view.id;
-  busy(true, "Saving the picture\u2026", "");
+  busy(true, "Saving\u2026", "");
   try{
     const big   = shotKind === "page" ? 1400 : 1100;
     const full  = await shrink(f, big, .78);
@@ -1133,10 +1132,10 @@ $("fileShot").addEventListener("change", async e=>{
     busy(false);
     if(view.id === id) renderDetail();
     renderHome(); renderAll();
-    toast("Picture saved.");
+    toast("Saved.");
   }catch(err){
     busy(false);
-    alert("That picture would not save. " + (err.message || ""));
+    alert("That photo would not save. " + (err.message || ""));
   }
 });
 
@@ -1158,22 +1157,22 @@ async function wakeGrab(){
 async function cookOn(){
   const got = await wakeGrab();
   if(!got){
-    alert("This phone will not let the app hold the screen on. "
-        + "You can turn the screen timeout up in the phone's own display settings instead.");
+    alert("This phone will not let the app keep the screen on. "
+        + "Turn the screen timeout up in the phone's display settings instead.");
     return;
   }
   wakeWanted = true;
   clearTimeout(wakeTimer);
   wakeTimer = setTimeout(cookOff, 3 * 60 * 60 * 1000);   /* never leave it on all night */
   drawCookBtn();
-  toast("Screen will stay on while you cook.");
+  toast("Screen will stay on.");
 }
 async function cookOff(quiet){
   wakeWanted = false;
   clearTimeout(wakeTimer); wakeTimer = null;
   if(wakeLock){ try{ await wakeLock.release(); }catch(e){} wakeLock = null; }
   drawCookBtn();
-  if(!quiet) toast("Screen can sleep again.");
+  if(!quiet) toast("Screen can sleep now.");
 }
 /* the phone releases the lock every time she switches apps, so take it back */
 document.addEventListener("visibilitychange", ()=>{
@@ -1185,8 +1184,7 @@ function drawCookBtn(){
   if(!canWake()){ b.classList.add("hidden"); return; }
   b.classList.remove("hidden");
   b.classList.toggle("on", wakeWanted);
-  b.textContent = wakeWanted ? "\ud83d\udd25 Screen staying on \u00b7 tap when you are done"
-                             : "\ud83d\udd25 Keep the screen on while I cook";
+  b.textContent = wakeWanted ? "Screen on \u00b7 tap to stop" : "Keep the screen on";
 }
 $("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
 
@@ -1195,8 +1193,8 @@ $("btnMade").addEventListener("click", ()=>{
   const r = byId(view.id); if(!r) return;
   r.made = r.made || [];
   const t = todayISO();
-  if(r.made.includes(t)){ toast("Already logged for today."); return; }
-  r.made.push(t); save(); renderDetail(); toast("Logged. Hope it was good.");
+  if(r.made.includes(t)){ toast("Already down for today."); return; }
+  r.made.push(t); save(); renderDetail(); toast("Cooked today.");
 });
 $("btnAddCmt").addEventListener("click", ()=>{
   const r = byId(view.id); if(!r) return;
@@ -1209,7 +1207,7 @@ $("btnAddCmt").addEventListener("click", ()=>{
 });
 $("btnDelete").addEventListener("click", async ()=>{
   const r = byId(view.id); if(!r) return;
-  if(!confirm('Delete "' + (r.title||"this recipe") + '"? This cannot be undone.')) return;
+  if(!confirm('Delete "' + (r.title||"this recipe") + '"? You cannot undo this.')) return;
   db.recipes = db.recipes.filter(x=>x.id!==r.id);
   save();
   try{ await imgDel(r.id); }catch(e){}
@@ -1234,13 +1232,13 @@ function openSheet(r){
     '<div class="tworow"><div><label class="f">Serves</label><input type="text" id="fServ" placeholder="4"></div>' +
     '<div><label class="f">Prep (min)</label><input type="number" id="fPrep" inputmode="numeric"></div>' +
     '<div><label class="f">Cook (min)</label><input type="number" id="fCook" inputmode="numeric"></div></div>' +
-    '<label class="f">Ingredients, one per line</label><textarea id="fIng" placeholder="2 cups plain flour&#10;200 g butter, softened"></textarea>' +
-    '<label class="f">Method, one step per line</label><textarea id="fMth" style="min-height:120px"></textarea>' +
-    '<label class="f">Tags, comma separated</label><input type="text" id="fTags" placeholder="dinner, chicken, quick">' +
-    '<label class="f">Where it came from</label><div class="chips" id="fSrc"></div>' +
+    '<label class="f">Ingredients · one per line</label><textarea id="fIng" placeholder="2 cups plain flour&#10;200 g butter, softened"></textarea>' +
+    '<label class="f">Method · one step per line</label><textarea id="fMth" style="min-height:120px"></textarea>' +
+    '<label class="f">Tags · separated by commas</label><input type="text" id="fTags" placeholder="dinner, chicken, quick">' +
+    '<label class="f">Where from</label><div class="chips" id="fSrc"></div>' +
     '<label class="f">Notes</label><textarea id="fNotes" placeholder="Halve the sugar. Freezes well."></textarea>' +
-    '<label class="f">Photo of the dish</label>' +
-    '<button class="ghostbtn wide" id="fPhotoBtn" style="margin:0">📸 Choose a photo</button>' +
+    '<label class="f">Photo</label>' +
+    '<button class="ghostbtn wide" id="fPhotoBtn" style="margin:0">Choose a photo</button>' +
     '<div class="sheetbtns"><button class="ghostbtn" id="fCancel">Cancel</button>' +
     '<button class="bigbtn" id="fSave">Save</button></div>';
 
@@ -1278,9 +1276,9 @@ function sourceRow(){
   });
   const add = document.createElement("button");
   add.className = "chip add";
-  add.textContent = "＋ Somewhere else";
+  add.textContent = "＋ Other";
   add.addEventListener("click", ()=>{
-    const v = prompt("Where did this one come from?", fState.source || "");
+    const v = prompt("Where did this come from?", fState.source || "");
     if(v && v.trim()){ fState.source = v.trim(); sourceRow(); }
   });
   el.appendChild(add);
@@ -1364,13 +1362,13 @@ async function saveSheet(){
     const near = findSimilar(r, r.id);
     if(near){
       const lm = lastMade(near.recipe);
-      const ans = await askSheet("You may already have this one",
-        "It looks a lot like <b>" + esc(near.recipe.title) + "</b>" +
+      const ans = await askSheet("You may have this already",
+        "Looks like <b>" + esc(near.recipe.title) + "</b>" +
         (near.recipe.source ? ", from " + esc(near.recipe.source) : "") +
-        (lm ? ", last made " + agoWords(lm) : "") + ".",
-        [{ label:"Open the one I have", value:"open", primary:true },
-         { label:"Add this one as well", value:"add" },
-         { label:"Keep editing", value:null }]);
+        (lm ? ", cooked " + agoWords(lm) : "") + ".",
+        [{ label:"Open that one", value:"open", primary:true },
+         { label:"Add it anyway", value:"add" },
+         { label:"Back", value:null }]);
       if(!ans) return;
       if(ans === "open"){ closeSheet(); openDetail(near.recipe.id); return; }
     }
@@ -1403,7 +1401,7 @@ $("filePhoto").addEventListener("change", async e=>{
     const full  = await shrink(f, 1100, .78);
     const thumb = await shrink(f, 300, .7);
     pendingPhoto = { full:full, thumb:thumb };
-    const b = $("fPhotoBtn"); if(b) b.textContent = "📸 Photo ready ✓";
+    const b = $("fPhotoBtn"); if(b) b.textContent = "Photo ready";
   }catch(err){ toast(err.message); }
 });
 
@@ -1475,7 +1473,7 @@ async function offerImport(code){
     list = await unpackRecipes(code);
     if(!list.length) throw new Error("empty");
   }catch(e){
-    alert("That link or code did not work. Ask for it again, and make sure the whole thing came across.");
+    alert("That link did not work. Ask for it again, and check the whole thing came across.");
     return;
   }
   const names = list.map(r => "\u2022 " + esc(r.title || "Untitled")).join("<br>");
@@ -1483,15 +1481,15 @@ async function offerImport(code){
   const ans = await askSheet(list.length === 1 ? "Someone sent you a recipe" : "Someone sent you " + list.length + " recipes",
     names +
     (dupes.length ? "<br><br>You look to have " + (dupes.length === 1 ? "this one" : dupes.length + " of these") +
-                    " already, so you would end up with two copies." : ""),
-    [{ label: list.length === 1 ? "Add it to my book" : "Add them to my book", value:"add", primary:true },
+                    " already." : ""),
+    [{ label: list.length === 1 ? "Add it" : "Add them", value:"add", primary:true },
      { label:"No thanks", value:null }]);
   if(ans !== "add") return;
   list.forEach(r => db.recipes.push(r));
   save();
   renderHome(); renderAll();
   if(list.length === 1) openDetail(list[0].id); else { show("recipes"); }
-  toast(list.length === 1 ? "Added to your book." : "Added " + list.length + " recipes.");
+  toast(list.length === 1 ? "Added." : "Added " + list.length + " recipes.");
 }
 function codeFromText(txt){
   const m = /[#&?]r=([A-Za-z0-9_-]+)/.exec(txt || "");
@@ -1508,7 +1506,7 @@ function checkShareLink(){
 window.addEventListener("hashchange", checkShareLink);
 $("btnImport").addEventListener("click", ()=>{
   const code = codeFromText($("importBox").value);
-  if(!code){ toast("Paste the whole link or code first."); return; }
+  if(!code){ toast("Paste the link in first."); return; }
   $("importBox").value = "";
   offerImport(code);
 });
@@ -1555,12 +1553,12 @@ function haveKey(){
 }
 
 $("btnAdd").addEventListener("click", async ()=>{
-  const pick = await askSheet("Add a recipe", "Where is it coming from?", [
-    { label:"\ud83d\udcf7 Take a photo of it", value:"camera", primary:true },
-    { label:"\ud83d\uddbc\ufe0f Pick a photo I already took", value:"gallery" },
-    { label:"\ud83d\udd17 A recipe on a website", value:"link" },
-    { label:"\u270d\ufe0f Type it in myself", value:"manual" },
-    { label:"\ud83d\udce5 Someone sent me one", value:"share" }
+  const pick = await askSheet("Add a recipe", "", [
+    { label:"Take a photo", value:"camera", primary:true },
+    { label:"Choose a photo", value:"gallery" },
+    { label:"From a website", value:"link" },
+    { label:"Type it in", value:"manual" },
+    { label:"Sent to me", value:"share" }
   ]);
   if(pick === "manual") return openSheet(null);
   if(pick === "share"){ show("settings"); setTimeout(()=>$("importBox").focus(), 200); return; }
@@ -1568,9 +1566,8 @@ $("btnAdd").addEventListener("click", async ()=>{
   if(pick === "gallery"){ if(haveKey()) $("filePages").click(); return; }
   if(pick === "link"){
     if(!haveKey()) return;
-    const url = await askInput("A recipe on a website", "Paste the address",
-      "https://\u2026",
-      "Copy the address from your browser, or from the share button on the page.");
+    const url = await askInput("From a website", "Paste the address", "https://",
+      "Copy it from your browser, or from the share button on the page.");
     if(url) scanLink(url);
   }
 });
@@ -1592,7 +1589,7 @@ async function askClaude(key, body){
     }, body))
   });
   if(!res.ok){
-    let msg = "It could not read that (error " + res.status + ").";
+    let msg = "It could not read that.";
     try{
       const err = await res.json();
       if(res.status === 401) msg = "That key was not accepted. Check it in Settings.";
@@ -1607,14 +1604,14 @@ async function askClaude(key, body){
 }
 function recipeFromReply(data){
   if(data.stop_reason === "refusal")
-    throw new Error("Claude would not read that one. Try a clearer photo.");
+    throw new Error("It would not read that one. Try a clearer photo.");
   const txt = (data.content||[]).filter(b => b.type === "text").map(b => b.text).join("").trim();
   if(!txt) throw new Error("Nothing came back. Try again.");
   try{ return JSON.parse(txt); }
   catch(e){
     const a = txt.indexOf("{"), b = txt.lastIndexOf("}");
     if(a >= 0 && b > a) return JSON.parse(txt.slice(a, b+1));
-    throw new Error("What came back did not make sense. Try again.");
+    throw new Error("That came back muddled. Try again.");
   }
 }
 function intoSheet(r, heading){
@@ -1637,8 +1634,8 @@ function intoSheet(r, heading){
 async function scanPhotos(files){
   const key = localStorage.getItem(KKEY);
   if(!key) return;
-  busy(true, "Reading the recipe\u2026",
-       files.length > 1 ? files.length + " pictures. Ten or twenty seconds."
+  busy(true, "Reading it\u2026",
+       files.length > 1 ? files.length + " photos. Ten or twenty seconds."
                         : "Ten or twenty seconds.");
   try{
     const pages = [];
@@ -1656,7 +1653,7 @@ async function scanPhotos(files){
     pendingPages = [];
     for(const pg of pages)
       pendingPages.push({ full: pg, thumb: await shrinkDataUrl(pg, 300) });
-    toast("Have a read through before you save.");
+    toast("Check it before you save.");
   }catch(err){
     busy(false);
     alert(err.message || "That did not work.");
@@ -1675,7 +1672,7 @@ $("filePagesCam").addEventListener("change", e=>{
 async function scanLink(url){
   const key = localStorage.getItem(KKEY);
   if(!key) return;
-  busy(true, "Reading the page\u2026", "Fetching the recipe off the website.");
+  busy(true, "Reading the page\u2026", "Ten or twenty seconds.");
   try{
     const messages = [{ role:"user", content:
       "Open this page and give me the recipe on it: " + url + "\n\n" + PROMPT +
@@ -1699,7 +1696,7 @@ async function scanLink(url){
     toast("Have a read through before you save.");
   }catch(err){
     busy(false);
-    alert(err.message || "That page could not be read. Try a screenshot of it instead.");
+    alert(err.message || "That page would not read. Try a screenshot of it instead.");
   }
 }
 
@@ -1725,7 +1722,7 @@ $("apiKey").value = localStorage.getItem(KKEY) || "";
 $("btnSaveKey").addEventListener("click", ()=>{
   const v = $("apiKey").value.trim();
   if(v) localStorage.setItem(KKEY, v); else localStorage.removeItem(KKEY);
-  toast(v ? "Key saved on this phone." : "Key removed.");
+  toast(v ? "Saved." : "Key removed.");
 });
 
 function download(name, text, type){
@@ -1736,7 +1733,7 @@ function download(name, text, type){
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 200);
 }
 $("btnBackup").addEventListener("click", async ()=>{
-  busy(true, "Packing it up…", "Photos take a moment.");
+  busy(true, "Saving…", "Photos take a moment.");
   try{
     const photos = {};
     for(const k of await imgKeys()){
@@ -1756,15 +1753,15 @@ $("fileRestore").addEventListener("change", e=>{
     try{
       const d = JSON.parse(fr.result);
       const book = d.book || d;
-      if(!book || !Array.isArray(book.recipes)) throw new Error("That file is not a saved copy of a recipe book.");
+      if(!book || !Array.isArray(book.recipes)) throw new Error("That is not a saved copy of a recipe book.");
       const have = new Set(db.recipes.map(r => r.id));
       const fresh = book.recipes.filter(r => !have.has(r.id));
       const ans = await askSheet("Restore from a backup",
-        "There are <b>" + book.recipes.length + "</b> recipes in this file, " +
-        (fresh.length ? "<b>" + fresh.length + "</b> of them not on this phone yet."
-                      : "and you already have all of them."),
+        "<b>" + book.recipes.length + "</b> recipes in this file, " +
+        (fresh.length ? "<b>" + fresh.length + "</b> not on this phone yet."
+                      : "all of which you have already."),
         [{ label:"Add the new ones", value:"merge", primary:true },
-         { label:"Replace everything I have", value:"replace", danger:true },
+         { label:"Replace everything", value:"replace", danger:true },
          { label:"Cancel", value:null }]);
       if(!ans) return;
 
@@ -1780,8 +1777,8 @@ $("fileRestore").addEventListener("change", e=>{
       }
       busy(false);
       renderHome(); renderAll(); show("home");
-      toast(ans === "replace" ? ("Restored " + n + " recipes.")
-                              : (n ? "Added " + n + " recipes." : "Nothing new in that file."));
+      toast(ans === "replace" ? ("Brought back " + n + " recipes.")
+                              : (n ? "Added " + n + " recipes." : "Nothing new in there."));
     }catch(err){ busy(false); alert(err.message); }
   };
   fr.readAsText(f);
