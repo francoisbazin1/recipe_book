@@ -17,7 +17,10 @@ in the browser on the phone it is installed on.
   and tells you which line matched. Tag chips narrow it further.
 - **Cooked lately / maybe tonight** — the kitchen page shows what you have made recently and
   nudges the ones you have not made in a while.
-- **Per recipe** — a photo, a star rating, tick-off ingredients while you cook, notes, a dated
+- **Photos, as many as you like** — of the finished dish and of the page it came from, each
+  labelled. Scanning keeps the photographed page automatically, so the original handwriting is
+  always there to check against. Tap one to enlarge it, make it the main picture, or delete it.
+- **Per recipe** — a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
 - **Half it or double it** — ½× 1× 1½× 2× above the ingredients. Only the quantity at the front
   of each line moves, so "2 x 400 g tin" doubles to "4 x 400 g tin" and never "4 x 800 g".
