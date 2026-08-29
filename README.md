@@ -5,11 +5,11 @@ in the browser on the phone it is installed on.
 
 ## What it does
 
-- **Scan a recipe** — photograph a cookbook page, a handwritten card, or a screenshot of a
-  website. The pictures go to Claude and come back as a title, ingredients, method, tags and
-  times, ready to check and save. Needs your own Claude API key (Settings). A scan costs a
-  couple of cents.
-- **Type one in** — same form, no key needed.
+- **Add a recipe** — one button, then pick how it is coming in: take a photo of it, pick a photo
+  already on the phone, give it a website address, type it in yourself, or add one someone sent.
+  Photos and websites are read by Claude and come back as a title, ingredients, method, tags and
+  times, ready to check before saving. Those two need a Claude key (Settings); the other three
+  do not. Reading one recipe costs a couple of cents.
 - **Where it came from** — every recipe carries a source, picked from chips (The book, Coles
   magazine, RecipeTin Eats, and whatever else she adds). The Recipes tab filters by it, and the
   scanner fills it in from the page.

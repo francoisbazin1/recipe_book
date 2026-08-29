@@ -54,12 +54,13 @@
     --shadow:0 6px 24px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
+  html{height:100%}
+  body{min-height:100%}   /* not height:100% - that eats the padding the nav needs */
   body{
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     background:var(--bg); color:var(--ink);
     max-width:520px; margin:0 auto;
-    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+    padding-bottom:calc(104px + env(safe-area-inset-bottom));
   }
   header{display:flex;align-items:center;gap:10px;padding:18px 18px 8px}
   header .logo{width:34px;height:34px;flex:none}
@@ -279,13 +280,12 @@
       <div class="card stat"><div class="v" id="statFav">–</div><div class="l">4★ and up</div></div>
     </div>
 
-    <button class="bigbtn" id="btnScan">📷 Scan a recipe</button>
-    <button class="ghostbtn wide" id="btnManual">✍️ Type one in</button>
+    <button class="bigbtn" id="btnAdd">＋ Add a recipe</button>
 
     <div class="card" id="cardEmpty">
       <div class="empty" style="padding:14px 6px">
         <span class="fl">🧁</span>Nothing in the book yet.<br>
-        Photograph a page, or type one in. Everything stays on this phone.
+        Tap <b>Add a recipe</b> above. Everything stays on this phone.
       </div>
     </div>
 
@@ -354,31 +354,33 @@
   <!-- SETTINGS -->
   <section class="tab" id="tab-settings">
     <div class="card">
-      <h2>SCANNING RECIPES</h2>
-      <label class="f">Claude API key</label>
-      <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
-      <button class="ghostbtn wide" id="btnSaveKey" style="margin-top:12px">Save key</button>
-      <div class="hint">Needed only for 📷 Scan. The key is stored on this phone and nowhere else. Photos go straight to Anthropic and come back as text. A scanned recipe costs a couple of cents.</div>
+      <h2>READING RECIPES FROM PHOTOS</h2>
+      <label class="f">Your Claude key</label>
+      <input type="password" id="apiKey" placeholder="Starts with sk-ant-" autocomplete="off">
+      <button class="ghostbtn wide" id="btnSaveKey" style="margin-top:12px">Save it</button>
+      <div class="hint">This is what lets the app read a photo of a recipe and write it out for you.
+      Without it you can still type recipes in, and still add ones people send you. The key lives on
+      this phone only. Each recipe read costs a couple of cents.</div>
     </div>
     <div class="card">
-      <h2>ADD RECIPES SOMEONE SENT YOU</h2>
-      <textarea id="importBox" placeholder="Paste the link or the code here" style="min-height:70px"></textarea>
-      <button class="ghostbtn wide" id="btnImport" style="margin:12px 0 0">＋ Add them to my book</button>
-      <div class="hint">Tapping the link usually does it on its own. Use this box when the link
-      opens in the wrong place, which happens on an iPhone when the app is on the home screen.</div>
+      <h2>SOMEONE SENT ME A RECIPE</h2>
+      <textarea id="importBox" placeholder="Paste the recipe link here" style="min-height:70px"></textarea>
+      <button class="ghostbtn wide" id="btnImport" style="margin:12px 0 0">＋ Add it to my book</button>
+      <div class="hint">Tapping the link they sent usually does it on its own. Use this box if
+      tapping it did nothing, which happens on an iPhone when the app is on the home screen.</div>
     </div>
     <div class="card">
-      <h2>YOUR BOOK</h2>
+      <h2>KEEPING IT SAFE</h2>
       <div class="exportrow">
-        <button class="ghostbtn" id="btnBackup">⬇ Backup (JSON)</button>
-        <button class="ghostbtn" id="btnRestore">⬆ Restore</button>
-        <button class="ghostbtn" id="btnCsv">📄 Export CSV</button>
+        <button class="ghostbtn" id="btnBackup">💾 Save a copy</button>
+        <button class="ghostbtn" id="btnRestore">📂 Bring a copy back</button>
+        <button class="ghostbtn" id="btnCsv">📊 As a spreadsheet</button>
       </div>
-      <div class="hint">Everything lives on this phone. Back up now and then, especially before changing phones. Restoring can add to what you already have rather than replacing it, so nothing gets lost. The backup includes the photos so the file can be large.</div>
+      <div class="hint">Everything lives on this phone. Save a copy now and then, and definitely before changing phones. It saves one file with everything in it, photos included. Bringing a copy back can add to what is already here rather than replacing it, so nothing gets lost. The backup includes the photos so the file can be large.</div>
     </div>
     <div class="card">
       <h2>ABOUT</h2>
-      <div class="hint" style="margin-top:0">Tap the title at the top to call it whatever you like, name and tagline both. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
+      <div class="hint" style="margin-top:0">Tap the title at the top to call it whatever you like, name and line underneath. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
     </div>
   </section>
 </main>
@@ -408,6 +410,7 @@
 <div class="toast" id="toast"></div>
 
 <input type="file" id="filePages" accept="image/*" multiple class="hidden">
+<input type="file" id="filePagesCam" accept="image/*" capture="environment" multiple class="hidden">
 <input type="file" id="filePhoto" accept="image/*" class="hidden">
 <input type="file" id="fileRestore" accept="application/json,.json" class="hidden">
 
@@ -998,6 +1001,35 @@ function sourceRow(){
   el.appendChild(add);
 }
 
+/* one text field in the sheet. Resolves to the typed text, or null. */
+function askInput(title, label, placeholder, help){
+  return new Promise(res=>{
+    $("sheetTitle").textContent = title;
+    $("sheetBody").innerHTML =
+      '<label class="f">' + label + '</label>' +
+      '<input type="text" id="askField" placeholder="' + placeholder + '" autocomplete="off">' +
+      (help ? '<div class="hint">' + help + '</div>' : '') +
+      '<div id="askBtns" style="margin-top:18px"></div>';
+    const go = ()=>{
+      const v = $("askField").value.trim();
+      askResolve = null; closeSheet(); res(v || null);
+    };
+    const ok = document.createElement("button");
+    ok.className = "bigbtn"; ok.textContent = "Go";
+    ok.addEventListener("click", go);
+    const no = document.createElement("button");
+    no.className = "ghostbtn wide"; no.textContent = "Cancel";
+    no.addEventListener("click", ()=>{ askResolve = null; closeSheet(); res(null); });
+    $("askBtns").appendChild(ok); $("askBtns").appendChild(no);
+    $("askField").addEventListener("keydown", e => { if(e.key === "Enter") go(); });
+    askResolve = res;
+    $("scrim").classList.add("open");
+    $("sheet").classList.add("open");
+    $("sheet").scrollTop = 0;
+    setTimeout(()=>$("askField").focus(), 260);
+  });
+}
+
 function closeSheet(){
   $("scrim").classList.remove("open");
   $("sheet").classList.remove("open");
@@ -1067,7 +1099,6 @@ $("filePhoto").addEventListener("change", async e=>{
   }catch(err){ toast(err.message); }
 });
 
-$("btnManual").addEventListener("click", ()=> openSheet(null));
 
 /* ---------- sharing recipes as a link ---------- */
 function b64urlEnc(bytes){
@@ -1207,87 +1238,161 @@ const PROMPT =
 "- Use Australian English and the units on the page. Never invent an ingredient, a quantity or a step that is not there.\n" +
 "If the pictures are several pages of the same recipe, treat them as one recipe in the order given.";
 
-$("btnScan").addEventListener("click", ()=>{
-  if(!localStorage.getItem(KKEY)){
-    toast("Add your Claude key in Settings first.");
-    show("settings"); return;
+/* ---------- bringing a recipe in ---------- */
+function haveKey(){
+  if(localStorage.getItem(KKEY)) return true;
+  toast("Add your Claude key in Settings first.");
+  show("settings");
+  return false;
+}
+
+$("btnAdd").addEventListener("click", async ()=>{
+  const pick = await askSheet("Add a recipe", "Where is it coming from?", [
+    { label:"\ud83d\udcf7 Take a photo of it", value:"camera", primary:true },
+    { label:"\ud83d\uddbc\ufe0f Pick a photo I already took", value:"gallery" },
+    { label:"\ud83d\udd17 A recipe on a website", value:"link" },
+    { label:"\u270d\ufe0f Type it in myself", value:"manual" },
+    { label:"\ud83d\udce5 Someone sent me one", value:"share" }
+  ]);
+  if(pick === "manual") return openSheet(null);
+  if(pick === "share"){ show("settings"); setTimeout(()=>$("importBox").focus(), 200); return; }
+  if(pick === "camera"){ if(haveKey()) $("filePagesCam").click(); return; }
+  if(pick === "gallery"){ if(haveKey()) $("filePages").click(); return; }
+  if(pick === "link"){
+    if(!haveKey()) return;
+    const url = await askInput("A recipe on a website", "Paste the address",
+      "https://\u2026",
+      "Copy the address from your browser, or from the share button on the page.");
+    if(url) scanLink(url);
   }
-  $("filePages").click();
 });
 
-$("filePages").addEventListener("change", async e=>{
-  const files = Array.from(e.target.files || []);
-  e.target.value = "";
-  if(!files.length) return;
-  const key = localStorage.getItem(KKEY);
-  if(!key){ show("settings"); return; }
+/* one place that talks to Claude, so photos and web pages behave the same */
+async function askClaude(key, body){
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key": key,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body: JSON.stringify(Object.assign({
+      model: MODEL,
+      max_tokens: 8000,
+      output_config:{ effort:"low", format:{ type:"json_schema", schema: SCHEMA } }
+    }, body))
+  });
+  if(!res.ok){
+    let msg = "It could not read that (error " + res.status + ").";
+    try{
+      const err = await res.json();
+      if(res.status === 401) msg = "That key was not accepted. Check it in Settings.";
+      else if(res.status === 429) msg = "Too many at once. Wait a minute and try again.";
+      else if(res.status === 400 && err && err.error && /credit|balance/i.test(err.error.message||""))
+        msg = "The Claude account is out of credit. Top it up and try again.";
+      else if(err && err.error && err.error.message) msg = err.error.message;
+    }catch(x){}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+function recipeFromReply(data){
+  if(data.stop_reason === "refusal")
+    throw new Error("Claude would not read that one. Try a clearer photo.");
+  const txt = (data.content||[]).filter(b => b.type === "text").map(b => b.text).join("").trim();
+  if(!txt) throw new Error("Nothing came back. Try again.");
+  try{ return JSON.parse(txt); }
+  catch(e){
+    const a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+    if(a >= 0 && b > a) return JSON.parse(txt.slice(a, b+1));
+    throw new Error("What came back did not make sense. Try again.");
+  }
+}
+function intoSheet(r, heading){
+  const rec = blank();
+  rec.title       = r.title || "";
+  rec.servings    = r.servings || "";
+  rec.prep        = r.prep_minutes || null;
+  rec.cook        = r.cook_minutes || null;
+  rec.ingredients = r.ingredients || [];
+  rec.method      = r.method || [];
+  rec.tags        = (r.tags||[]).map(t => String(t).toLowerCase());
+  rec.source      = r.source || "";
+  rec.notes       = r.notes || "";
+  openSheet(rec);
+  $("sheetTitle").textContent = heading;
+  return rec;
+}
 
-  busy(true, "Reading the recipe…", files.length>1 ? files.length + " pictures. Takes ten or twenty seconds." : "This takes ten or twenty seconds.");
+/* photos */
+async function scanPhotos(files){
+  const key = localStorage.getItem(KKEY);
+  if(!key) return;
+  busy(true, "Reading the recipe\u2026",
+       files.length > 1 ? files.length + " pictures. Ten or twenty seconds."
+                        : "Ten or twenty seconds.");
   try{
     const pages = [];
     for(const f of files) pages.push(await shrink(f, 1568, .82));
-
-    const content = pages.map(p => ({
+    const content = pages.map(pg => ({
       type:"image",
-      source:{ type:"base64", media_type:"image/jpeg", data: b64(p) }
+      source:{ type:"base64", media_type:"image/jpeg", data: b64(pg) }
     }));
     content.push({ type:"text", text: PROMPT });
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-api-key": key,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 8000,
-        output_config:{ effort:"low", format:{ type:"json_schema", schema: SCHEMA } },
-        messages:[{ role:"user", content: content }]
-      })
-    });
-
-    if(!res.ok){
-      let msg = "The scan failed (" + res.status + ").";
-      try{
-        const err = await res.json();
-        if(res.status===401) msg = "That API key was not accepted. Check it in Settings.";
-        else if(res.status===429) msg = "Too many scans at once. Wait a minute and try again.";
-        else if(err && err.error && err.error.message) msg = err.error.message;
-      }catch(x){}
-      throw new Error(msg);
-    }
-
-    const data = await res.json();
-    if(data.stop_reason === "refusal") throw new Error("Claude would not read that picture. Try a clearer photo.");
-    const txt = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
-    if(!txt) throw new Error("Nothing came back. Try again with a clearer photo.");
-    const r = JSON.parse(txt);
-
+    const data = await askClaude(key, { messages:[{ role:"user", content: content }] });
+    const r = recipeFromReply(data);
     busy(false);
-    const rec = blank();
-    rec.title       = r.title || "";
-    rec.servings    = r.servings || "";
-    rec.prep        = r.prep_minutes || null;
-    rec.cook        = r.cook_minutes || null;
-    rec.ingredients = r.ingredients || [];
-    rec.method      = r.method || [];
-    rec.tags        = (r.tags||[]).map(t=>String(t).toLowerCase());
-    rec.source      = r.source || "";
-    rec.notes       = r.notes || "";
-    openSheet(rec);
-    $("sheetTitle").textContent = "Check the scan";
-    /* offer the first page as the picture until she takes a nicer one */
+    intoSheet(r, "Check it over");
+    /* the photo of the page stands in until she takes a nicer one of the dish */
     pendingPhoto = { full: pages[0], thumb: await shrinkDataUrl(pages[0], 300) };
-    const b = $("fPhotoBtn"); if(b) b.textContent = "📸 Using the scan · change";
+    const b = $("fPhotoBtn"); if(b) b.textContent = "\ud83d\udcf8 Using the scan \u00b7 change";
     toast("Have a read through before you save.");
   }catch(err){
     busy(false);
-    alert(err.message || "The scan did not work.");
+    alert(err.message || "That did not work.");
   }
+}
+$("filePages").addEventListener("change", e=>{
+  const files = Array.from(e.target.files || []); e.target.value = "";
+  if(files.length) scanPhotos(files);
 });
+$("filePagesCam").addEventListener("change", e=>{
+  const files = Array.from(e.target.files || []); e.target.value = "";
+  if(files.length) scanPhotos(files);
+});
+
+/* a website. Claude fetches the page itself, so it works on any site. */
+async function scanLink(url){
+  const key = localStorage.getItem(KKEY);
+  if(!key) return;
+  busy(true, "Reading the page\u2026", "Fetching the recipe off the website.");
+  try{
+    const messages = [{ role:"user", content:
+      "Open this page and give me the recipe on it: " + url + "\n\n" + PROMPT +
+      "\n- source: the name of the site, plainly, for example \"RecipeTin Eats\"." }];
+    let data, guard = 0;
+    while(true){
+      data = await askClaude(key, {
+        messages: messages,
+        tools: [{ type:"web_fetch_20260209", name:"web_fetch" }]
+      });
+      if(data.stop_reason === "pause_turn" && guard++ < 3){
+        messages.push({ role:"assistant", content: data.content });
+        continue;
+      }
+      break;
+    }
+    const r = recipeFromReply(data);
+    busy(false);
+    const rec = intoSheet(r, "Check it over");
+    if(!rec.source) { fState.source = url.replace(/^https?:\/\//,"").split("/")[0]; sourceRow(); }
+    toast("Have a read through before you save.");
+  }catch(err){
+    busy(false);
+    alert(err.message || "That page could not be read. Try a screenshot of it instead.");
+  }
+}
 
 /* re-shrink an existing data URL (for the thumbnail of a scanned page) */
 function shrinkDataUrl(dataUrl, maxDim){
@@ -1329,8 +1434,8 @@ $("btnBackup").addEventListener("click", async ()=>{
       if(db.recipes.some(r=>r.id===k)) photos[k] = await imgGet(k);
     }
     const out = { v:1, saved: todayISO(), book: db, photos: photos };
-    download("recipes-" + todayISO() + ".json", JSON.stringify(out));
-    busy(false); toast("Backup saved to your downloads.");
+    download("my-recipes-" + todayISO() + ".json", JSON.stringify(out));
+    busy(false); toast("Saved to your downloads.");
   }catch(e){ busy(false); alert("Backup failed: " + e.message); }
 });
 $("btnRestore").addEventListener("click", ()=> $("fileRestore").click());
@@ -1342,14 +1447,14 @@ $("fileRestore").addEventListener("change", e=>{
     try{
       const d = JSON.parse(fr.result);
       const book = d.book || d;
-      if(!book || !Array.isArray(book.recipes)) throw new Error("That is not a recipe backup.");
+      if(!book || !Array.isArray(book.recipes)) throw new Error("That file is not a saved copy of a recipe book.");
       const have = new Set(db.recipes.map(r => r.id));
       const fresh = book.recipes.filter(r => !have.has(r.id));
       const ans = await askSheet("Restore from a backup",
-        "This file holds <b>" + book.recipes.length + "</b> recipes, " +
-        (fresh.length ? "<b>" + fresh.length + "</b> of them new to this phone."
-                      : "all of which you already have."),
-        [{ label:"Add the new ones to my book", value:"merge", primary:true },
+        "There are <b>" + book.recipes.length + "</b> recipes in this file, " +
+        (fresh.length ? "<b>" + fresh.length + "</b> of them not on this phone yet."
+                      : "and you already have all of them."),
+        [{ label:"Add the new ones", value:"merge", primary:true },
          { label:"Replace everything I have", value:"replace", danger:true },
          { label:"Cancel", value:null }]);
       if(!ans) return;
