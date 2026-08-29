@@ -19,6 +19,13 @@ in the browser on the phone it is installed on.
   nudges the ones you have not made in a while.
 - **Per recipe** — a photo, a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
+- **Half it or double it** — ½× 1× 1½× 2× above the ingredients. Only the quantity at the front
+  of each line moves, so "2 x 400 g tin" doubles to "4 x 400 g tin" and never "4 x 800 g".
+  Grams and millilitres read as decimals, cups and spoons as fractions. The stored recipe is
+  untouched; it is a way of reading it, not an edit.
+- **It notices a recipe you already have** — before saving a scan or adding a shared one, it
+  compares the name and the ingredients against the book and offers to open the one you have
+  instead. Catches the same page scanned twice even when the wording comes out differently.
 - **Send a recipe to someone** — turns it into a link. They tap it, the app asks whether to add
   it, and that is that. No key needed at either end, and nothing of theirs is overwritten.
   If the link opens in the wrong place (an iPhone with the app on the home screen keeps separate

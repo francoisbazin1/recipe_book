@@ -135,6 +135,9 @@
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
   .filters .chips:last-child{margin-bottom:0}
+  .scalerow{display:flex;gap:7px;margin:-2px 0 12px}
+  .scalerow .chip{flex:1;text-align:center;padding:8px 4px;font-size:13.5px}
+  .scalenote{font-size:12px;color:var(--accent);margin:-4px 0 10px;line-height:1.5}
 
   /* recipe cards */
   .rlist{display:flex;flex-direction:column;gap:10px}
@@ -325,6 +328,8 @@
 
     <div class="card" id="cardIng">
       <h2>INGREDIENTS <span style="font-weight:400;text-transform:none">· tap to tick off</span></h2>
+      <div class="scalerow" id="dScale"></div>
+      <div class="scalenote hidden" id="dScaleNote"></div>
       <ul class="ing" id="dIng"></ul>
     </div>
     <div class="card" id="cardMth">
@@ -545,7 +550,7 @@ const STARTER = [
 
 
 let db = load();
-let view = { id:null, ticked:{} };
+let view = { id:null, ticked:{}, scale:1 };
 let fState = null;              /* recipe being edited in the sheet */
 let filterTag = null;
 let filterSource = null;
@@ -839,10 +844,108 @@ function renderAll(){
 }
 $("search").addEventListener("input", renderAll);
 
+/* ---------- making more or less of it ---------- */
+const UNI_FRAC = { "½":0.5, "¼":0.25, "¾":0.75, "⅓":1/3, "⅔":2/3, "⅛":0.125 };
+const NUM = "(?:\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:\\.\\d+)?|[½¼¾⅓⅔⅛])";
+const RE_RANGE  = new RegExp("^\\s*(" + NUM + ")\\s*([a-zA-Z]*)\\s*(?:-|\u2013|to)\\s*(" + NUM + ")\\s*([a-zA-Z]*)");
+const RE_SINGLE = new RegExp("^\\s*(" + NUM + ")\\s*([a-zA-Z]+)?");
+
+function numVal(tok){
+  if(UNI_FRAC[tok] !== undefined) return UNI_FRAC[tok];
+  const mixed = /^(\d+)\s+(\d+)\/(\d+)$/.exec(tok);
+  if(mixed) return (+mixed[1]) + (+mixed[2]) / (+mixed[3]);
+  const fr = /^(\d+)\/(\d+)$/.exec(tok);
+  if(fr) return (+fr[1]) / (+fr[2]);
+  return parseFloat(tok);
+}
+/* cooks write 1/2, not 0.5 */
+const FRACS = [[1,8,"1/8"],[1,6,"1/6"],[1,4,"1/4"],[1,3,"1/3"],[3,8,"3/8"],[1,2,"1/2"],
+               [5,8,"5/8"],[2,3,"2/3"],[3,4,"3/4"],[5,6,"5/6"],[7,8,"7/8"]];
+/* grams and millilitres read as decimals, cups and spoons read as fractions */
+function numStr(v, metric){
+  if(!isFinite(v)) return "";
+  const r = Math.round(v * 1000) / 1000;
+  if(Math.abs(r - Math.round(r)) < 0.001) return String(Math.round(r));
+  if(metric) return String(Math.round(r * 100) / 100);
+  const whole = Math.floor(r), rest = r - whole;
+  let best = null;
+  FRACS.forEach(f=>{
+    const d = Math.abs(rest - f[0]/f[1]);
+    if(d < 0.03 && (!best || d < best.d)) best = { d:d, s:f[2] };
+  });
+  if(best) return (whole ? whole + " " : "") + best.s;
+  return String(Math.round(r * 100) / 100);
+}
+/* 1600 g reads better as 1.6 kg */
+function tidyUnit(v, unit){
+  const u = (unit || "").toLowerCase();
+  if(u === "g"  && v >= 1000) return [v/1000, "kg"];
+  if(u === "kg" && v <  1)    return [v*1000, "g"];
+  if(u === "ml" && v >= 1000) return [v/1000, "L"];
+  if((u === "l" || u === "litre" || u === "litres") && v < 1) return [v*1000, "ml"];
+  return [v, unit || ""];
+}
+const withUnit = pair => numStr(pair[0], !!pair[1]) + (pair[1] ? " " + pair[1] : "");
+const SCALE_UNITS = /^(g|kg|ml|l|litre|litres)$/i;
+
+/* only the quantity at the front of the line moves. "2 x 400 g tin" becomes
+   "4 x 400 g tin", never "4 x 800 g tin". */
+function scaleLine(line, f){
+  if(f === 1) return line;
+  const rg = RE_RANGE.exec(line);
+  if(rg){
+    const a = tidyUnit(numVal(rg[1]) * f, SCALE_UNITS.test(rg[2]) ? rg[2] : "");
+    const b = tidyUnit(numVal(rg[3]) * f, SCALE_UNITS.test(rg[4]) ? rg[4] : "");
+    const keptA = SCALE_UNITS.test(rg[2]) ? "" : (rg[2] ? " " + rg[2] : "");
+    const keptB = SCALE_UNITS.test(rg[4]) ? "" : (rg[4] ? " " + rg[4] : "");
+    return withUnit(a) + keptA + " - " + withUnit(b) + keptB + line.slice(rg[0].length);
+  }
+  const m = RE_SINGLE.exec(line);
+  if(!m) return line;
+  const isUnit = m[2] && SCALE_UNITS.test(m[2]);
+  const v = tidyUnit(numVal(m[1]) * f, isUnit ? m[2] : "");
+  const kept = isUnit ? "" : (m[2] ? " " + m[2] : "");
+  return withUnit(v) + kept + line.slice(m[0].length);
+}
+function scaleServes(txt, f){
+  if(f === 1 || !txt) return txt;
+  return txt.replace(/\d+(\.\d+)?/, x => numStr(parseFloat(x) * f, false));
+}
+const SCALES = [[0.5,"½×"],[1,"1×"],[1.5,"1½×"],[2,"2×"]];
+
+/* ---------- spotting one she already has ---------- */
+const STOPW = new Set(["and","the","with","of","for","to","fresh","chopped","diced","sliced",
+  "finely","large","small","tsp","tbsp","cup","cups","tin","tins","can","cans","packet","bunch",
+  "clove","cloves","ground","extra","virgin","into","pinch","plain","taste","optional","about"]);
+function words(str){
+  return String(str || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+    .filter(w => w.length > 2 && !STOPW.has(w) && !/^\d+$/.test(w));
+}
+function overlap(a, b){
+  if(!a.size || !b.size) return 0;
+  let n = 0; a.forEach(x => { if(b.has(x)) n++; });
+  return n / (a.size + b.size - n);
+}
+const fingerprint = r => ({
+  t: new Set(words(r.title)),
+  i: new Set(words((r.ingredients||[]).join(" ")))
+});
+/* the name matters a bit more than the ingredients: two curries share a lot of spices */
+function findSimilar(rec, skipId){
+  const f = fingerprint(rec);
+  let best = null;
+  db.recipes.forEach(r=>{
+    if(r.id === skipId) return;
+    const sc = 0.55 * overlap(f.t, fingerprint(r).t) + 0.45 * overlap(f.i, fingerprint(r).i);
+    if(!best || sc > best.score) best = { recipe:r, score:sc };
+  });
+  return (best && best.score >= 0.5) ? best : null;
+}
+
 /* ---------- detail ---------- */
 const byId = id => db.recipes.find(r=>r.id===id);
 function openDetail(id){
-  view = { id:id, ticked:{} };
+  view = { id:id, ticked:{}, scale:1 };
   renderDetail();
   show("detail");
 }
@@ -861,7 +964,7 @@ function renderDetail(){
   }
 
   const bits = [];
-  const sv = servesWords(r.servings);
+  const sv = servesWords(scaleServes(r.servings, view.scale));
   if(sv) bits.push(sv.charAt(0).toUpperCase() + sv.slice(1));
   if(r.prep) bits.push(r.prep + " min prep");
   if(r.cook) bits.push(r.cook + " min cook");
@@ -875,10 +978,25 @@ function renderDetail(){
     if(v && (v.full || v.thumb) && view.id===r.id){ ph.src = v.full || v.thumb; ph.classList.remove("hidden"); }
   });
 
+  const sc = $("dScale"); sc.innerHTML = "";
+  SCALES.forEach(pair=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (view.scale === pair[0] ? " on" : "");
+    b.textContent = pair[1];
+    b.addEventListener("click", ()=>{ view.scale = pair[0]; renderDetail(); });
+    sc.appendChild(b);
+  });
+  const note = $("dScaleNote");
+  note.classList.toggle("hidden", view.scale === 1);
+  if(view.scale !== 1)
+    note.textContent = "Amounts below are " +
+      SCALES.find(x => x[0] === view.scale)[1] + " the recipe. The method still reads as written, "
+      + "and cooking times will not simply scale.";
+
   const ing = $("dIng"); ing.innerHTML = "";
   (r.ingredients||[]).forEach((line,i)=>{
     const li = document.createElement("li");
-    li.textContent = line;
+    li.textContent = scaleLine(line, view.scale);
     if(view.ticked[i]) li.classList.add("tick");
     li.addEventListener("click", ()=>{ view.ticked[i] = !view.ticked[i]; li.classList.toggle("tick"); });
     ing.appendChild(li);
@@ -1074,6 +1192,23 @@ async function saveSheet(){
   if(!r.title && !r.ingredients.length){ toast("Give it a name at least."); return; }
   if(!r.title) r.title = "Untitled recipe";
 
+  const isNew = !db.recipes.some(x => x.id === r.id);
+  if(isNew){
+    const near = findSimilar(r, r.id);
+    if(near){
+      const lm = lastMade(near.recipe);
+      const ans = await askSheet("You may already have this one",
+        "It looks a lot like <b>" + esc(near.recipe.title) + "</b>" +
+        (near.recipe.source ? ", from " + esc(near.recipe.source) : "") +
+        (lm ? ", last made " + agoWords(lm) : "") + ".",
+        [{ label:"Open the one I have", value:"open", primary:true },
+         { label:"Add this one as well", value:"add" },
+         { label:"Keep editing", value:null }]);
+      if(!ans) return;
+      if(ans === "open"){ closeSheet(); openDetail(near.recipe.id); return; }
+    }
+  }
+
   const i = db.recipes.findIndex(x=>x.id===r.id);
   if(i>=0) db.recipes[i] = r; else db.recipes.push(r);
   save();
@@ -1171,11 +1306,11 @@ async function offerImport(code){
     return;
   }
   const names = list.map(r => "\u2022 " + esc(r.title || "Untitled")).join("<br>");
-  const dupes = list.filter(r => db.recipes.some(x => (x.title||"").toLowerCase() === (r.title||"").toLowerCase()));
+  const dupes = list.filter(r => findSimilar(r, null));
   const ans = await askSheet(list.length === 1 ? "Someone sent you a recipe" : "Someone sent you " + list.length + " recipes",
     names +
-    (dupes.length ? "<br><br>You already have " + (dupes.length === 1 ? "one by that name" : dupes.length + " of these by name") +
-                    ", so you would end up with two copies." : ""),
+    (dupes.length ? "<br><br>You look to have " + (dupes.length === 1 ? "this one" : dupes.length + " of these") +
+                    " already, so you would end up with two copies." : ""),
     [{ label: list.length === 1 ? "Add it to my book" : "Add them to my book", value:"add", primary:true },
      { label:"No thanks", value:null }]);
   if(ans !== "add") return;
