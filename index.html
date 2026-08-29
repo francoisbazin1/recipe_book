@@ -362,7 +362,7 @@
     </div>
     <div class="card">
       <h2>ABOUT</h2>
-      <div class="hint" style="margin-top:0">Tap the title at the top to put your own name on it. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
+      <div class="hint" style="margin-top:0">Tap the title at the top to call it whatever you like, name and tagline both. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
     </div>
   </section>
 </main>
@@ -406,12 +406,132 @@ let view = { id:null, ticked:{} };
 let fState = null;              /* recipe being edited in the sheet */
 let filterTag = null;
 
+const STARTER = [
+{
+"id": "r_lambcurry",
+"title": "Lamb and chickpea curry",
+"servings": "",
+"prep": 20,
+"cook": 150,
+"source": "Recipe book",
+"tags": [
+"dinner",
+"lamb",
+"curry",
+"slow"
+],
+"ingredients": [
+"Olive oil",
+"800 g - 1 kg of diced lamb shoulder",
+"1 tsp mustard seeds",
+"1/2 tsp ground turmeric",
+"1 tsp chilli powder",
+"1 tbsp madras curry powder",
+"5 cm fresh ginger",
+"4 cloves garlic",
+"3 onions",
+"10 curry leaves",
+"2 x 400 g tin chickpeas",
+"1 tsp vegetable stock",
+"1 x 400 g tin tomatoes",
+"200 g tin of light coconut milk",
+"200 g baby spinach",
+"1 bunch coriander"
+],
+"method": [
+"Heat 1 tbsp olive oil in a large, deep saucepan or casserole dish over a medium heat, then add the lamb, spices and curry powder. Cook gently for 15 mins or until browned all over, stirring occasionally.",
+"Peel and finely slice the ginger, garlic and onions. Add the sliced ingredients and curry leaves to the pan, then cook for a further 10-15 mins or until softened, stirring occasionally.",
+"Tip in the chickpeas (and their juice), the stock, the tomatoes and one tin of hot water. Season lightly and bring to the boil.",
+"Cover with the lid and reduce heat to simmer gently for 1.5 to 2 hours, or until the lamb is tender and the sauce has thickened and reduced, stirring occasionally."
+],
+"notes": "Coconut milk, spinach and coriander are in the ingredients but not in the written steps: stir the coconut milk through near the end, wilt the spinach in, and scatter the coriander over to serve.",
+"rating": 0,
+"made": [],
+"comments": []
+},
+{
+"id": "r_tiramisu",
+"title": "Tiramisu",
+"servings": "",
+"prep": 30,
+"cook": null,
+"source": "Recipe book",
+"tags": [
+"dessert",
+"no bake",
+"make ahead"
+],
+"ingredients": [
+"300 ml thickened cream",
+"250 g mascarpone",
+"1/2 cup icing sugar",
+"250 g sponge fingers",
+"2 tbsp instant coffee",
+"2 cups boiling water",
+"1/4 cup sugar",
+"1/2 cup Tia Maria",
+"2 tbsp cocoa"
+],
+"method": [
+"Beat cream, icing sugar and mascarpone in a medium to large mixing bowl.",
+"Combine coffee, boiling water, sugar and Tia Maria in another large mixing bowl. Allow to cool.",
+"Dip the biscuits one at a time, arrange side by side in a serving dish.",
+"Spread half the cream over the sponge fingers, then sprinkle half the cocoa on top.",
+"Repeat with remaining sponge fingers dipped into the coffee and arrange on top of the cream.",
+"Repeat the layer of cream on the sponge fingers and dust with cocoa.",
+"Cover and refrigerate for a minimum of 3 hours. Overnight is best."
+],
+"notes": "",
+"rating": 0,
+"made": [],
+"comments": []
+},
+{
+"id": "r_spinachslice",
+"title": "Spinach and cheese slice",
+"servings": "",
+"prep": 20,
+"cook": 35,
+"source": "Recipe book",
+"tags": [
+"dinner",
+"vegetarian",
+"baking"
+],
+"ingredients": [
+"500 g cottage cheese",
+"3 eggs",
+"250 g sour cream",
+"1 - 1 1/2 cups grated cheese",
+"Filo pastry",
+"Olive oil spray",
+"1 packet fresh spinach"
+],
+"method": [
+"Line a baking dish with butter or spray with olive oil.",
+"In a mixing bowl combine the cottage cheese, eggs, half the sour cream, grated cheese, and salt and pepper to taste.",
+"Pour half the cheese mixture into the baking dish.",
+"Cover the cheese mixture with wilted spinach leaves.",
+"Cover the spinach with 2 layers of filo pastry.",
+"Pour the remaining mixture onto the filo pastry.",
+"Cover the mixture with 2 layers of filo pastry.",
+"Spoon the remaining sour cream over the filo pastry.",
+"Bake for approximately 30-35 mins in a moderate oven."
+],
+"notes": "",
+"rating": 0,
+"made": [],
+"comments": []
+}
+];
+
 function load(){
   try{
     const d = JSON.parse(localStorage.getItem(KEY));
     if(d && Array.isArray(d.recipes)) return d;
   }catch(e){}
-  return { recipes:[], name:"", theme:null };
+  /* first open: the three out of the book, so it is not an empty shell */
+  return { recipes: JSON.parse(JSON.stringify(STARTER)), name:"", sub:"", theme:null };
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
 const $ = id => document.getElementById(id);
@@ -521,11 +641,17 @@ $("themeBtn").addEventListener("click", ()=>{
 });
 function applyName(){
   const t = $("appTitle");
-  t.childNodes[0].nodeValue = db.name ? (db.name + "'s Recipes") : "Recipe Book";
+  t.childNodes[0].nodeValue = db.name || "Recipe Book";
+  $("subGreet").textContent = db.sub || "Keep the good ones";
+  document.title = db.name || "Recipe Book";
 }
 $("appTitle").addEventListener("click", ()=>{
-  const n = prompt("Whose recipe book is this? (first name, stays on this phone)", db.name||"");
-  if(n !== null){ db.name = n.trim(); save(); applyName(); }
+  const n = prompt("Call it whatever you like. Stays on this phone.", db.name||"Recipe Book");
+  if(n === null) return;
+  db.name = n.trim();
+  const sub = prompt("And the little line underneath?", db.sub||"Keep the good ones");
+  if(sub !== null) db.sub = sub.trim();
+  save(); applyName();
 });
 
 /* ---------- tabs ---------- */
