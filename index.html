@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdf4ea" id="metaTheme">
+<title>Recipe Book</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#fdf4ea;
+    --surface:#ffffff;
+    --surface2:#fdf8f2;
+    --ink:#33231a;
+    --ink2:#7c6252;
+    --muted:#a99182;
+    --grid:#f0e2d4;
+    --baseline:#e0cdba;
+    --accent:#c9642e;
+    --accent-ink:#ffffff;
+    --accent-soft:#f7e3d4;
+    --green:#5f7d4a;
+    --chip:#f7e9dc;
+    --chip-ink:#8a5a38;
+    --chip-on:#c9642e;
+    --chip-on-ink:#ffffff;
+    --danger:#c23a3a;
+    --ring:rgba(51,35,26,.08);
+    --shadow:0 6px 24px rgba(140,85,45,.10);
+  }
+  [data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#171210;
+    --surface:#241c18;
+    --surface2:#2c221c;
+    --ink:#fbeee2;
+    --ink2:#cbb0a0;
+    --muted:#9c8677;
+    --grid:#382c25;
+    --baseline:#4b3a30;
+    --accent:#e8905a;
+    --accent-ink:#2c160a;
+    --accent-soft:#4a3225;
+    --green:#9dbc84;
+    --chip:#33261f;
+    --chip-ink:#e4c2a8;
+    --chip-on:#e8905a;
+    --chip-on-ink:#2c160a;
+    --danger:#ef7a7a;
+    --ring:rgba(255,235,220,.10);
+    --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink);
+    max-width:520px; margin:0 auto;
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  }
+  header{display:flex;align-items:center;gap:10px;padding:18px 18px 8px}
+  header .logo{width:34px;height:34px;flex:none}
+  header h1{font-size:20px;font-weight:700;letter-spacing:.2px;flex:1}
+  header h1 small{display:block;font-size:12px;font-weight:500;color:var(--ink2)}
+  .iconbtn{
+    border:none;background:var(--surface);color:var(--ink2);
+    width:38px;height:38px;border-radius:12px;font-size:17px;
+    box-shadow:0 1px 0 var(--ring), var(--shadow); cursor:pointer;
+  }
+  main{padding:6px 16px 16px}
+  .tab{display:none}
+  .tab.active{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .card{
+    background:var(--surface); border-radius:18px; padding:16px;
+    box-shadow:0 0 0 1px var(--ring), var(--shadow); margin-bottom:14px;
+  }
+  .card h2{font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:10px;letter-spacing:.3px}
+
+  .hero{text-align:center;padding:22px 16px}
+  .hero .big{font-size:48px;font-weight:700;line-height:1}
+  .hero .unit{font-size:14px;color:var(--ink2);margin-top:6px}
+  .statrow{display:flex;gap:12px}
+  .statrow .card{flex:1;margin-bottom:14px;padding:14px;text-align:center}
+  .stat .v{font-size:24px;font-weight:700}
+  .stat .l{font-size:11.5px;color:var(--ink2);margin-top:2px}
+
+  .bigbtn{
+    display:block;width:100%;border:none;cursor:pointer;
+    background:var(--accent);color:var(--accent-ink);
+    font-size:17px;font-weight:700;font-family:inherit;
+    padding:17px;border-radius:18px;margin:4px 0 10px;
+    box-shadow:var(--shadow);
+  }
+  .bigbtn:active{transform:scale(.985)}
+  .bigbtn[disabled]{opacity:.6}
+  .ghostbtn{
+    border:none;cursor:pointer;font-family:inherit;
+    background:var(--chip);color:var(--chip-ink);
+    font-size:15px;font-weight:600;padding:15px 18px;border-radius:16px;
+  }
+  .ghostbtn.wide{display:block;width:100%;margin-bottom:18px}
+  .ghostbtn.danger{color:var(--danger)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    border:none;cursor:pointer;font-family:inherit;
+    background:var(--chip);color:var(--chip-ink);
+    font-size:14px;padding:9px 14px;border-radius:999px;
+  }
+  .chip.on{background:var(--chip-on);color:var(--chip-on-ink);font-weight:600}
+  .chip.add{background:transparent;box-shadow:inset 0 0 0 1.5px var(--baseline);color:var(--muted)}
+
+  label.f{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);margin:16px 0 8px}
+  label.f:first-child{margin-top:0}
+  input[type=text],input[type=search],input[type=number],input[type=password],textarea{
+    width:100%;border:1.5px solid var(--baseline);background:var(--surface2);
+    color:var(--ink);border-radius:12px;padding:11px 12px;font-size:15px;font-family:inherit;
+  }
+  textarea{min-height:80px;resize:vertical;line-height:1.5}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  .tworow{display:flex;gap:10px}
+  .tworow>div{flex:1;min-width:0}
+
+  .searchwrap{position:relative;margin-bottom:12px}
+  .searchwrap input{padding-left:38px;border-radius:14px}
+  .searchwrap .mg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+
+  /* recipe cards */
+  .rlist{display:flex;flex-direction:column;gap:10px}
+  .rcard{
+    display:flex;gap:12px;align-items:center;cursor:pointer;
+    background:var(--surface);border-radius:16px;padding:10px;
+    box-shadow:0 0 0 1px var(--ring), var(--shadow);
+  }
+  .rcard .th{
+    flex:none;width:56px;height:56px;border-radius:14px;object-fit:cover;
+    background:var(--accent-soft);display:flex;align-items:center;justify-content:center;
+    font-size:22px;color:var(--accent);
+  }
+  .rcard .body{flex:1;min-width:0}
+  .rcard .t{font-size:15.5px;font-weight:650;line-height:1.3}
+  .rcard .m{font-size:12.5px;color:var(--ink2);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rcard .hit{font-size:12px;color:var(--accent);margin-top:3px}
+  .rcard .star{flex:none;font-size:11px;color:var(--accent);letter-spacing:1px}
+  .empty{color:var(--muted);text-align:center;padding:34px 20px;font-size:14px;line-height:1.6}
+  .empty .fl{font-size:32px;display:block;margin-bottom:10px}
+
+  /* detail */
+  .backbtn{
+    border:none;background:none;color:var(--accent);font-family:inherit;
+    font-size:14.5px;font-weight:600;cursor:pointer;padding:6px 0;margin-bottom:6px;
+  }
+  .hphoto{width:100%;height:190px;object-fit:cover;border-radius:18px;margin-bottom:14px;background:var(--accent-soft)}
+  .dtitle{font-size:23px;font-weight:700;line-height:1.25;margin-bottom:6px}
+  .dmeta{font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:12px}
+  .stars{font-size:19px;letter-spacing:2px;cursor:pointer;user-select:none}
+  .stars .s{color:var(--baseline)}
+  .stars .s.on{color:var(--accent)}
+  ul.ing{list-style:none}
+  ul.ing li{
+    padding:9px 0 9px 26px;position:relative;font-size:14.5px;line-height:1.45;
+    border-bottom:1px solid var(--grid);
+  }
+  ul.ing li:last-child{border-bottom:none}
+  ul.ing li::before{content:"";position:absolute;left:6px;top:16px;width:7px;height:7px;
+    border-radius:50%;background:var(--accent)}
+  ul.ing li.tick{color:var(--muted);text-decoration:line-through}
+  ol.mth{list-style:none;counter-reset:st}
+  ol.mth li{
+    counter-increment:st;padding:10px 0 10px 34px;position:relative;
+    font-size:14.5px;line-height:1.55;border-bottom:1px solid var(--grid);
+  }
+  ol.mth li:last-child{border-bottom:none}
+  ol.mth li::before{
+    content:counter(st);position:absolute;left:0;top:9px;
+    width:23px;height:23px;border-radius:8px;background:var(--accent-soft);color:var(--accent);
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .noteline{font-size:14px;line-height:1.6;white-space:pre-wrap}
+  .cmt{padding:9px 0;border-bottom:1px solid var(--grid);font-size:14px;line-height:1.5}
+  .cmt:last-child{border-bottom:none}
+  .cmt .d{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .madelist{font-size:13px;color:var(--ink2);line-height:1.7}
+  .btnrow{display:flex;gap:10px;margin-top:4px}
+  .btnrow>*{flex:1}
+
+  /* sheet */
+  .scrim{position:fixed;inset:0;background:rgba(40,22,10,.45);display:none;z-index:40}
+  .scrim.open{display:block}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:520px;margin:0 auto;
+    background:var(--surface);border-radius:24px 24px 0 0;
+    padding:10px 18px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform .25s ease;
+    max-height:90vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  }
+  .sheet.open{transform:none}
+  .grab{width:38px;height:4px;border-radius:2px;background:var(--baseline);margin:4px auto 12px}
+  .sheet h3{font-size:18px;margin-bottom:4px}
+  .sheetbtns{display:flex;gap:10px;margin-top:20px}
+  .sheetbtns .bigbtn{margin:0}
+
+  /* busy */
+  .busy{position:fixed;inset:0;z-index:70;background:rgba(40,22,10,.55);
+    display:none;align-items:center;justify-content:center;padding:30px}
+  .busy.open{display:flex}
+  .busy .box{background:var(--surface);border-radius:20px;padding:26px 22px;text-align:center;max-width:300px}
+  .busy .pot{font-size:34px;display:block;margin-bottom:10px;animation:bob 1.1s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .busy .t{font-size:15px;font-weight:650}
+  .busy .s{font-size:12.5px;color:var(--ink2);margin-top:6px;line-height:1.5}
+
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));
+    z-index:80;background:var(--ink);color:var(--bg);font-size:13.5px;
+    padding:11px 16px;border-radius:12px;display:none;max-width:88%;text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.3);
+  }
+  .toast.on{display:block}
+
+  nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:520px;margin:0 auto;
+    background:var(--surface);
+    box-shadow:0 -1px 0 var(--ring), 0 -6px 24px rgba(140,85,45,.08);
+    display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav button{
+    flex:1;border:none;background:none;cursor:pointer;font-family:inherit;
+    color:var(--muted);font-size:11px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;border-radius:12px;
+  }
+  nav button .nic{font-size:19px;line-height:1}
+  nav button.on{color:var(--accent)}
+
+  .exportrow{display:flex;flex-wrap:wrap;gap:10px}
+  .exportrow .ghostbtn{flex:1;min-width:130px;padding:13px 10px;font-size:13.5px}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eda06a"/><stop offset="1" stop-color="#c9642e"/>
+    </linearGradient></defs>
+    <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#lg)"/>
+    <g fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round">
+      <path d="M22 16v13M28 16v13M25 29v19"/>
+      <path d="M42 16c-4 0-6 4-6 9s2 8 6 8"/>
+      <path d="M42 16v32"/>
+    </g>
+  </svg>
+  <h1 id="appTitle" title="Tap to personalise">Recipe Book<small id="subGreet">Keep the good ones</small></h1>
+  <button class="iconbtn" id="themeBtn" title="Light / dark">🌙</button>
+</header>
+
+<main>
+  <!-- KITCHEN -->
+  <section class="tab active" id="tab-home">
+    <div class="card hero">
+      <div class="big" id="heroCount">–</div>
+      <div class="unit" id="heroLabel">recipes in the book</div>
+    </div>
+    <div class="statrow">
+      <div class="card stat"><div class="v" id="statMonth">–</div><div class="l">cooked this month</div></div>
+      <div class="card stat"><div class="v" id="statFav">–</div><div class="l">4★ and up</div></div>
+    </div>
+
+    <button class="bigbtn" id="btnScan">📷 Scan a recipe</button>
+    <button class="ghostbtn wide" id="btnManual">✍️ Type one in</button>
+
+    <div class="card" id="cardEmpty">
+      <div class="empty" style="padding:14px 6px">
+        <span class="fl">🧁</span>Nothing in the book yet.<br>
+        Photograph a page, or type one in. Everything stays on this phone.
+      </div>
+    </div>
+
+    <div class="card" id="cardRecent">
+      <h2>COOKED LATELY</h2>
+      <div class="rlist" id="recentList"></div>
+    </div>
+
+    <div class="card" id="cardTry">
+      <h2>MAYBE TONIGHT</h2>
+      <div class="rlist" id="tryList"></div>
+    </div>
+  </section>
+
+  <!-- RECIPES -->
+  <section class="tab" id="tab-recipes">
+    <div class="searchwrap">
+      <span class="mg">🔍</span>
+      <input type="search" id="search" placeholder="Search name or ingredient…" autocomplete="off">
+    </div>
+    <div class="chips" id="tagFilter" style="margin-bottom:14px"></div>
+    <div class="rlist" id="allList"></div>
+  </section>
+
+  <!-- DETAIL -->
+  <section class="tab" id="tab-detail">
+    <button class="backbtn" id="btnBack">← Back</button>
+    <img class="hphoto hidden" id="dPhoto" alt="">
+    <div class="dtitle" id="dTitle"></div>
+    <div class="stars" id="dStars"></div>
+    <div class="dmeta" id="dMeta"></div>
+
+    <button class="bigbtn" id="btnMade">🍽️ We made this today</button>
+
+    <div class="card" id="cardIng">
+      <h2>INGREDIENTS <span style="font-weight:400;text-transform:none">· tap to tick off</span></h2>
+      <ul class="ing" id="dIng"></ul>
+    </div>
+    <div class="card" id="cardMth">
+      <h2>METHOD</h2>
+      <ol class="mth" id="dMth"></ol>
+    </div>
+    <div class="card" id="cardNotes">
+      <h2>NOTES</h2>
+      <div class="noteline" id="dNotes"></div>
+    </div>
+    <div class="card">
+      <h2>HOW IT WENT</h2>
+      <div id="dCmts"></div>
+      <button class="ghostbtn wide" id="btnAddCmt" style="margin:12px 0 0">＋ Add a comment</button>
+    </div>
+    <div class="card" id="cardMade">
+      <h2>MADE ON</h2>
+      <div class="madelist" id="dMade"></div>
+    </div>
+    <div class="btnrow" style="margin-bottom:16px">
+      <button class="ghostbtn" id="btnEdit">✎ Edit</button>
+      <button class="ghostbtn danger" id="btnDelete">🗑 Delete</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="tab" id="tab-settings">
+    <div class="card">
+      <h2>SCANNING RECIPES</h2>
+      <label class="f">Claude API key</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
+      <button class="ghostbtn wide" id="btnSaveKey" style="margin-top:12px">Save key</button>
+      <div class="hint">Needed only for 📷 Scan. The key is stored on this phone and nowhere else. Photos go straight to Anthropic and come back as text. A scanned recipe costs a couple of cents.</div>
+    </div>
+    <div class="card">
+      <h2>YOUR BOOK</h2>
+      <div class="exportrow">
+        <button class="ghostbtn" id="btnBackup">⬇ Backup (JSON)</button>
+        <button class="ghostbtn" id="btnRestore">⬆ Restore</button>
+        <button class="ghostbtn" id="btnCsv">📄 Export CSV</button>
+      </div>
+      <div class="hint">Everything lives on this phone. Back up now and then, especially before changing phones. The backup includes the photos so the file can be large.</div>
+    </div>
+    <div class="card">
+      <h2>ABOUT</h2>
+      <div class="hint" style="margin-top:0">Tap the title at the top to put your own name on it. Add to Home Screen from the browser menu and it opens like a normal app, offline and all.</div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="home" class="on"><span class="nic">🏠</span>Kitchen</button>
+  <button data-tab="recipes"><span class="nic">📖</span>Recipes</button>
+  <button data-tab="settings"><span class="nic">⚙️</span>Settings</button>
+</nav>
+
+<!-- edit sheet -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h3 id="sheetTitle">New recipe</h3>
+  <div id="sheetBody"></div>
+</div>
+
+<div class="busy" id="busy">
+  <div class="box">
+    <span class="pot">🍲</span>
+    <div class="t" id="busyT">Reading the recipe…</div>
+    <div class="s" id="busyS">This takes ten or twenty seconds.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<input type="file" id="filePages" accept="image/*" multiple class="hidden">
+<input type="file" id="filePhoto" accept="image/*" class="hidden">
+<input type="file" id="fileRestore" accept="application/json,.json" class="hidden">
+
+<script>
+/* ---------- data ---------- */
+const KEY  = "recipe.book.v1";
+const KKEY = "recipe.apikey";
+const MODEL = "claude-opus-5";
+
+let db = load();
+let view = { id:null, ticked:{} };
+let fState = null;              /* recipe being edited in the sheet */
+let filterTag = null;
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if(d && Array.isArray(d.recipes)) return d;
+  }catch(e){}
+  return { recipes:[], name:"", theme:null };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid = () => "r" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* ---------- photos in IndexedDB ---------- */
+const IDB = "recipe.photos", STORE = "img";
+function idb(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open(IDB,1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function imgPut(id,val){
+  const d = await idb();
+  return new Promise((res,rej)=>{ const t=d.transaction(STORE,"readwrite");
+    t.objectStore(STORE).put(val,id); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+}
+async function imgGet(id){
+  if(!id) return null;
+  const d = await idb();
+  return new Promise((res,rej)=>{ const t=d.transaction(STORE,"readonly");
+    const q=t.objectStore(STORE).get(id); q.onsuccess=()=>res(q.result||null); q.onerror=()=>rej(q.error); });
+}
+async function imgDel(id){
+  const d = await idb();
+  return new Promise((res,rej)=>{ const t=d.transaction(STORE,"readwrite");
+    t.objectStore(STORE).delete(id); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+}
+async function imgKeys(){
+  const d = await idb();
+  return new Promise((res,rej)=>{ const t=d.transaction(STORE,"readonly");
+    const q=t.objectStore(STORE).getAllKeys(); q.onsuccess=()=>res(q.result||[]); q.onerror=()=>rej(q.error); });
+}
+
+/* resize a picked file to a jpeg data URL */
+function shrink(file, maxDim, quality){
+  return new Promise((res,rej)=>{
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("Could not read that picture."));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => rej(new Error("Could not open that picture."));
+      im.onload = () => {
+        let w = im.width, h = im.height;
+        const sc = Math.min(1, maxDim/Math.max(w,h));
+        w = Math.round(w*sc); h = Math.round(h*sc);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(im,0,0,w,h);
+        res(c.toDataURL("image/jpeg", quality));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+const b64 = dataUrl => dataUrl.slice(dataUrl.indexOf(",")+1);
+
+/* ---------- small helpers ---------- */
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const pad = n => String(n).padStart(2,"0");
+const todayISO = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+function fmtDate(iso){
+  const p = String(iso).split("-");
+  return Number(p[2]) + " " + MONTHS[Number(p[1])-1] + " " + p[0];
+}
+function daysAgo(iso){
+  const d = new Date(iso+"T12:00:00");
+  return Math.round((Date.now() - d.getTime())/86400000);
+}
+function agoWords(iso){
+  const n = daysAgo(iso);
+  if(n <= 0) return "today";
+  if(n === 1) return "yesterday";
+  if(n < 14) return n + " days ago";
+  if(n < 60) return Math.round(n/7) + " weeks ago";
+  return Math.round(n/30) + " months ago";
+}
+const lastMade = r => (r.made && r.made.length) ? r.made.slice().sort().slice(-1)[0] : null;
+const lines = s => String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("on"), 2600);
+}
+function busy(on, title, sub){
+  $("busy").classList.toggle("open", !!on);
+  if(title) $("busyT").textContent = title;
+  if(sub) $("busyS").textContent = sub;
+}
+
+/* ---------- theme + name ---------- */
+function applyTheme(){
+  const dark = db.theme ? db.theme==="dark"
+    : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  $("themeBtn").textContent = dark ? "☀️" : "🌙";
+  $("metaTheme").content = dark ? "#171210" : "#fdf4ea";
+}
+$("themeBtn").addEventListener("click", ()=>{
+  db.theme = document.documentElement.dataset.theme==="dark" ? "light" : "dark";
+  save(); applyTheme();
+});
+function applyName(){
+  const t = $("appTitle");
+  t.childNodes[0].nodeValue = db.name ? (db.name + "'s Recipes") : "Recipe Book";
+}
+$("appTitle").addEventListener("click", ()=>{
+  const n = prompt("Whose recipe book is this? (first name, stays on this phone)", db.name||"");
+  if(n !== null){ db.name = n.trim(); save(); applyName(); }
+});
+
+/* ---------- tabs ---------- */
+function show(tab){
+  document.querySelectorAll(".tab").forEach(s=>s.classList.remove("active"));
+  $("tab-"+tab).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===tab));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    show(b.dataset.tab);
+    if(b.dataset.tab==="home") renderHome();
+    if(b.dataset.tab==="recipes") renderAll();
+  });
+});
+
+/* ---------- recipe cards ---------- */
+function ratingStars(n){ return n ? "★".repeat(n) : ""; }
+function servesWords(s){
+  if(!s) return "";
+  return /^(makes|serves)/i.test(s.trim()) ? s.trim() : "serves " + s.trim();
+}
+function metaLine(r){
+  const bits = [];
+  const sv = servesWords(r.servings);
+  if(sv) bits.push(sv);
+  const lm = lastMade(r);
+  bits.push(lm ? "made " + agoWords(lm) : "not made yet");
+  return bits.join(" · ");
+}
+function recipeCard(r, hint){
+  const d = document.createElement("div");
+  d.className = "rcard";
+  d.innerHTML =
+    '<div class="th">🍽️</div>' +
+    '<div class="body"><div class="t">' + esc(r.title||"Untitled") + '</div>' +
+    '<div class="m">' + esc(metaLine(r)) + '</div>' +
+    (hint ? '<div class="hit">' + esc(hint) + '</div>' : '') +
+    '</div>' +
+    '<div class="star">' + ratingStars(r.rating) + '</div>';
+  d.addEventListener("click", ()=>openDetail(r.id));
+  imgGet(r.id).then(v=>{
+    if(!v || !v.thumb) return;
+    const img = document.createElement("img");
+    img.className = "th"; img.src = v.thumb; img.alt = "";
+    d.replaceChild(img, d.firstChild);
+  });
+  return d;
+}
+function fillList(el, list, empty, hintFor){
+  el.innerHTML = "";
+  if(!list.length){ el.innerHTML = '<div class="empty">' + empty + '</div>'; return; }
+  list.forEach(r => el.appendChild(recipeCard(r, hintFor ? hintFor(r) : null)));
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  const rs = db.recipes;
+  $("heroCount").textContent = rs.length;
+  $("heroLabel").textContent = rs.length===1 ? "recipe in the book" : "recipes in the book";
+
+  const now = new Date(), ym = now.getFullYear()+"-"+pad(now.getMonth()+1);
+  let cooked = 0;
+  rs.forEach(r => (r.made||[]).forEach(d => { if(d.startsWith(ym)) cooked++; }));
+  $("statMonth").textContent = cooked;
+  $("statFav").textContent = rs.filter(r=>(r.rating||0)>=4).length;
+
+  const recent = rs.filter(lastMade).sort((a,b)=> lastMade(a)<lastMade(b)?1:-1).slice(0,4);
+  fillList($("recentList"), recent,
+    '<span class="fl">🥄</span>Nothing cooked yet.<br>Open a recipe and tap “We made this today”.');
+  $("cardRecent").classList.toggle("hidden", !rs.length);
+  $("cardEmpty").classList.toggle("hidden", rs.length > 0);
+
+  const older = rs.slice().sort((a,b)=>{
+    const A = lastMade(a), B = lastMade(b);
+    if(!A && !B) return (b.rating||0)-(a.rating||0);
+    if(!A) return -1;
+    if(!B) return 1;
+    return A < B ? -1 : 1;
+  }).slice(0,3);
+  fillList($("tryList"), older,
+    '<span class="fl">🍳</span>Add a recipe and it will turn up here.',
+    r => lastMade(r) ? "last made " + agoWords(lastMade(r)) : "never made");
+  $("cardTry").classList.toggle("hidden", rs.length < 2);
+}
+
+/* ---------- all recipes, search by name or ingredient ---------- */
+function allTags(){
+  const s = new Set();
+  db.recipes.forEach(r => (r.tags||[]).forEach(t => s.add(t)));
+  return Array.from(s).sort();
+}
+function renderTagFilter(){
+  const el = $("tagFilter"); el.innerHTML = "";
+  const tags = allTags();
+  if(!tags.length) return;
+  tags.forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (filterTag===t ? " on" : "");
+    b.textContent = t;
+    b.addEventListener("click", ()=>{ filterTag = filterTag===t ? null : t; renderAll(); });
+    el.appendChild(b);
+  });
+}
+function searchHit(r, q){
+  if(!q) return { ok:true, hint:null };
+  const inTitle = (r.title||"").toLowerCase().includes(q);
+  const tag = (r.tags||[]).find(t => t.toLowerCase().includes(q));
+  const ing = (r.ingredients||[]).find(i => i.toLowerCase().includes(q));
+  const mth = (r.method||[]).some(m => m.toLowerCase().includes(q));
+  const note = (r.notes||"").toLowerCase().includes(q);
+  if(inTitle) return { ok:true, hint:null };
+  if(ing) return { ok:true, hint:"has " + ing };
+  if(tag) return { ok:true, hint:"tagged " + tag };
+  if(mth || note) return { ok:true, hint:"mentioned in the method" };
+  return { ok:false };
+}
+function renderAll(){
+  renderTagFilter();
+  const q = $("search").value.trim().toLowerCase();
+  const out = [];
+  db.recipes.forEach(r=>{
+    if(filterTag && !(r.tags||[]).includes(filterTag)) return;
+    const h = searchHit(r, q);
+    if(h.ok) out.push([r, h.hint]);
+  });
+  out.sort((a,b)=> (a[0].title||"").localeCompare(b[0].title||""));
+  const el = $("allList"); el.innerHTML = "";
+  if(!out.length){
+    el.innerHTML = '<div class="empty"><span class="fl">🔎</span>' +
+      (db.recipes.length ? "Nothing matches that." : "The book is empty.<br>Scan or type your first recipe.") +
+      '</div>';
+    return;
+  }
+  out.forEach(p => el.appendChild(recipeCard(p[0], p[1])));
+}
+$("search").addEventListener("input", renderAll);
+
+/* ---------- detail ---------- */
+const byId = id => db.recipes.find(r=>r.id===id);
+function openDetail(id){
+  view = { id:id, ticked:{} };
+  renderDetail();
+  show("detail");
+}
+function renderDetail(){
+  const r = byId(view.id);
+  if(!r){ show("recipes"); return; }
+  $("dTitle").textContent = r.title || "Untitled";
+
+  const st = $("dStars"); st.innerHTML = "";
+  for(let i=1;i<=5;i++){
+    const s = document.createElement("span");
+    s.className = "s" + ((r.rating||0)>=i ? " on" : "");
+    s.textContent = "★";
+    s.addEventListener("click", ()=>{ r.rating = (r.rating===i ? 0 : i); save(); renderDetail(); });
+    st.appendChild(s);
+  }
+
+  const bits = [];
+  const sv = servesWords(r.servings);
+  if(sv) bits.push(sv.charAt(0).toUpperCase() + sv.slice(1));
+  if(r.prep) bits.push(r.prep + " min prep");
+  if(r.cook) bits.push(r.cook + " min cook");
+  if((r.tags||[]).length) bits.push(r.tags.join(", "));
+  if(r.source) bits.push(r.source);
+  $("dMeta").innerHTML = bits.map(esc).join(" &nbsp;·&nbsp; ");
+
+  const ph = $("dPhoto");
+  ph.classList.add("hidden");
+  imgGet(r.id).then(v=>{
+    if(v && (v.full || v.thumb) && view.id===r.id){ ph.src = v.full || v.thumb; ph.classList.remove("hidden"); }
+  });
+
+  const ing = $("dIng"); ing.innerHTML = "";
+  (r.ingredients||[]).forEach((line,i)=>{
+    const li = document.createElement("li");
+    li.textContent = line;
+    if(view.ticked[i]) li.classList.add("tick");
+    li.addEventListener("click", ()=>{ view.ticked[i] = !view.ticked[i]; li.classList.toggle("tick"); });
+    ing.appendChild(li);
+  });
+  $("cardIng").classList.toggle("hidden", !(r.ingredients||[]).length);
+
+  const mth = $("dMth"); mth.innerHTML = "";
+  (r.method||[]).forEach(s=>{ const li=document.createElement("li"); li.textContent=s; mth.appendChild(li); });
+  $("cardMth").classList.toggle("hidden", !(r.method||[]).length);
+
+  $("dNotes").textContent = r.notes || "";
+  $("cardNotes").classList.toggle("hidden", !r.notes);
+
+  const cm = $("dCmts"); cm.innerHTML = "";
+  const cmts = (r.comments||[]).slice().sort((a,b)=> a.d<b.d?1:-1);
+  if(!cmts.length) cm.innerHTML = '<div class="hint" style="margin:0">Nothing yet. Add a note after you cook it: too salty, needed longer, the kids liked it.</div>';
+  cmts.forEach(c=>{
+    const d = document.createElement("div");
+    d.className = "cmt";
+    d.innerHTML = '<div class="d">' + esc(fmtDate(c.d)) + '</div>' + esc(c.t);
+    cm.appendChild(d);
+  });
+
+  const made = (r.made||[]).slice().sort().reverse();
+  $("dMade").textContent = made.length ? made.map(fmtDate).join(" · ") : "";
+  $("cardMade").classList.toggle("hidden", !made.length);
+}
+$("btnBack").addEventListener("click", ()=>{ show("recipes"); renderAll(); });
+$("btnMade").addEventListener("click", ()=>{
+  const r = byId(view.id); if(!r) return;
+  r.made = r.made || [];
+  const t = todayISO();
+  if(r.made.includes(t)){ toast("Already logged for today."); return; }
+  r.made.push(t); save(); renderDetail(); toast("Logged. Hope it was good.");
+});
+$("btnAddCmt").addEventListener("click", ()=>{
+  const r = byId(view.id); if(!r) return;
+  const t = prompt("How did it go?");
+  if(t && t.trim()){
+    r.comments = r.comments || [];
+    r.comments.push({ d: todayISO(), t: t.trim() });
+    save(); renderDetail();
+  }
+});
+$("btnDelete").addEventListener("click", async ()=>{
+  const r = byId(view.id); if(!r) return;
+  if(!confirm('Delete "' + (r.title||"this recipe") + '"? This cannot be undone.')) return;
+  db.recipes = db.recipes.filter(x=>x.id!==r.id);
+  save();
+  try{ await imgDel(r.id); }catch(e){}
+  show("recipes"); renderAll(); toast("Deleted.");
+});
+$("btnEdit").addEventListener("click", ()=> openSheet(byId(view.id)));
+
+/* ---------- edit sheet ---------- */
+function blank(){
+  return { id:uid(), title:"", servings:"", prep:null, cook:null, source:"",
+           tags:[], ingredients:[], method:[], notes:"", rating:0, made:[], comments:[] };
+}
+let pendingPhoto = null;   /* data URL chosen in the sheet, written on save */
+
+function openSheet(r){
+  fState = r ? JSON.parse(JSON.stringify(r)) : blank();
+  pendingPhoto = null;
+  $("sheetTitle").textContent = r ? "Edit recipe" : "New recipe";
+  $("sheetBody").innerHTML =
+    '<label class="f">Name</label><input type="text" id="fTitle" placeholder="Nan\'s lemon slice">' +
+    '<div class="tworow"><div><label class="f">Serves</label><input type="text" id="fServ" placeholder="4"></div>' +
+    '<div><label class="f">Prep (min)</label><input type="number" id="fPrep" inputmode="numeric"></div>' +
+    '<div><label class="f">Cook (min)</label><input type="number" id="fCook" inputmode="numeric"></div></div>' +
+    '<label class="f">Ingredients, one per line</label><textarea id="fIng" placeholder="2 cups plain flour&#10;200 g butter, softened"></textarea>' +
+    '<label class="f">Method, one step per line</label><textarea id="fMth" style="min-height:120px"></textarea>' +
+    '<label class="f">Tags, comma separated</label><input type="text" id="fTags" placeholder="dinner, chicken, quick">' +
+    '<label class="f">Where it came from</label><input type="text" id="fSrc" placeholder="Nan\'s book p.42 / taste.com.au">' +
+    '<label class="f">Notes</label><textarea id="fNotes" placeholder="Halve the sugar. Freezes well."></textarea>' +
+    '<label class="f">Photo of the dish</label>' +
+    '<button class="ghostbtn wide" id="fPhotoBtn" style="margin:0">📸 Choose a photo</button>' +
+    '<div class="sheetbtns"><button class="ghostbtn" id="fCancel">Cancel</button>' +
+    '<button class="bigbtn" id="fSave">Save</button></div>';
+
+  $("fTitle").value = fState.title || "";
+  $("fServ").value  = fState.servings || "";
+  $("fPrep").value  = fState.prep || "";
+  $("fCook").value  = fState.cook || "";
+  $("fIng").value   = (fState.ingredients||[]).join("\n");
+  $("fMth").value   = (fState.method||[]).join("\n");
+  $("fTags").value  = (fState.tags||[]).join(", ");
+  $("fSrc").value   = fState.source || "";
+  $("fNotes").value = fState.notes || "";
+
+  $("fPhotoBtn").addEventListener("click", ()=> $("filePhoto").click());
+  $("fCancel").addEventListener("click", closeSheet);
+  $("fSave").addEventListener("click", saveSheet);
+
+  $("scrim").classList.add("open");
+  $("sheet").classList.add("open");
+  $("sheet").scrollTop = 0;
+}
+function closeSheet(){
+  $("scrim").classList.remove("open");
+  $("sheet").classList.remove("open");
+  fState = null; pendingPhoto = null;
+}
+$("scrim").addEventListener("click", closeSheet);
+
+async function saveSheet(){
+  const r = fState;
+  r.title     = $("fTitle").value.trim();
+  r.servings  = $("fServ").value.trim();
+  r.prep      = Number($("fPrep").value) || null;
+  r.cook      = Number($("fCook").value) || null;
+  r.ingredients = lines($("fIng").value);
+  r.method      = lines($("fMth").value);
+  r.tags      = $("fTags").value.split(",").map(t=>t.trim().toLowerCase()).filter(Boolean);
+  r.source    = $("fSrc").value.trim();
+  r.notes     = $("fNotes").value.trim();
+  if(!r.title && !r.ingredients.length){ toast("Give it a name at least."); return; }
+  if(!r.title) r.title = "Untitled recipe";
+
+  const i = db.recipes.findIndex(x=>x.id===r.id);
+  if(i>=0) db.recipes[i] = r; else db.recipes.push(r);
+  save();
+
+  if(pendingPhoto){
+    try{
+      await imgPut(r.id, pendingPhoto);
+    }catch(e){ toast("Recipe saved, but the photo would not fit."); }
+  }
+  closeSheet();
+  openDetail(r.id);
+  toast("Saved.");
+}
+
+$("filePhoto").addEventListener("change", async e=>{
+  const f = e.target.files[0]; e.target.value = "";
+  if(!f || !fState) return;
+  try{
+    const full  = await shrink(f, 1100, .78);
+    const thumb = await shrink(f, 300, .7);
+    pendingPhoto = { full:full, thumb:thumb };
+    const b = $("fPhotoBtn"); if(b) b.textContent = "📸 Photo ready ✓";
+  }catch(err){ toast(err.message); }
+});
+
+$("btnManual").addEventListener("click", ()=> openSheet(null));
+
+/* ---------- scan with Claude ---------- */
+const SCHEMA = {
+  type:"object",
+  properties:{
+    title:       { type:"string" },
+    servings:    { type:"string" },
+    prep_minutes:{ type:["integer","null"] },
+    cook_minutes:{ type:["integer","null"] },
+    ingredients: { type:"array", items:{ type:"string" } },
+    method:      { type:"array", items:{ type:"string" } },
+    tags:        { type:"array", items:{ type:"string" } },
+    source:      { type:"string" },
+    notes:       { type:"string" }
+  },
+  required:["title","servings","prep_minutes","cook_minutes","ingredients","method","tags","source","notes"],
+  additionalProperties:false
+};
+const PROMPT =
+"Transcribe the recipe in these pictures. They may be photos of a cookbook, a handwritten card, or a screenshot of a website.\n\n" +
+"Rules:\n" +
+"- Copy the ingredients exactly as written, one line each, keeping the quantities and units as they appear. Do not convert or round anything.\n" +
+"- Split the method into short numbered steps, one step per array item. Keep the original wording where you can.\n" +
+"- title: the recipe name only.\n" +
+"- servings: how many it serves, as written (\"4\", \"makes 12\"). Empty string if it is not stated.\n" +
+"- prep_minutes and cook_minutes: whole minutes if stated, otherwise null. Never guess.\n" +
+"- tags: two to four short lowercase words describing it, such as dinner, baking, chicken, vegetarian, dessert, slow cooker.\n" +
+"- source: the book, website or author if it is visible, otherwise an empty string.\n" +
+"- notes: anything on the page that is not an ingredient or a step, such as a tip, a variation or a serving suggestion. Empty string if there is none.\n" +
+"- Use Australian English and the units on the page. Never invent an ingredient, a quantity or a step that is not there.\n" +
+"If the pictures are several pages of the same recipe, treat them as one recipe in the order given.";
+
+$("btnScan").addEventListener("click", ()=>{
+  if(!localStorage.getItem(KKEY)){
+    toast("Add your Claude key in Settings first.");
+    show("settings"); return;
+  }
+  $("filePages").click();
+});
+
+$("filePages").addEventListener("change", async e=>{
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";
+  if(!files.length) return;
+  const key = localStorage.getItem(KKEY);
+  if(!key){ show("settings"); return; }
+
+  busy(true, "Reading the recipe…", files.length>1 ? files.length + " pictures. Takes ten or twenty seconds." : "This takes ten or twenty seconds.");
+  try{
+    const pages = [];
+    for(const f of files) pages.push(await shrink(f, 1568, .82));
+
+    const content = pages.map(p => ({
+      type:"image",
+      source:{ type:"base64", media_type:"image/jpeg", data: b64(p) }
+    }));
+    content.push({ type:"text", text: PROMPT });
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-api-key": key,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 8000,
+        output_config:{ effort:"low", format:{ type:"json_schema", schema: SCHEMA } },
+        messages:[{ role:"user", content: content }]
+      })
+    });
+
+    if(!res.ok){
+      let msg = "The scan failed (" + res.status + ").";
+      try{
+        const err = await res.json();
+        if(res.status===401) msg = "That API key was not accepted. Check it in Settings.";
+        else if(res.status===429) msg = "Too many scans at once. Wait a minute and try again.";
+        else if(err && err.error && err.error.message) msg = err.error.message;
+      }catch(x){}
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    if(data.stop_reason === "refusal") throw new Error("Claude would not read that picture. Try a clearer photo.");
+    const txt = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+    if(!txt) throw new Error("Nothing came back. Try again with a clearer photo.");
+    const r = JSON.parse(txt);
+
+    busy(false);
+    const rec = blank();
+    rec.title       = r.title || "";
+    rec.servings    = r.servings || "";
+    rec.prep        = r.prep_minutes || null;
+    rec.cook        = r.cook_minutes || null;
+    rec.ingredients = r.ingredients || [];
+    rec.method      = r.method || [];
+    rec.tags        = (r.tags||[]).map(t=>String(t).toLowerCase());
+    rec.source      = r.source || "";
+    rec.notes       = r.notes || "";
+    openSheet(rec);
+    $("sheetTitle").textContent = "Check the scan";
+    /* offer the first page as the picture until she takes a nicer one */
+    pendingPhoto = { full: pages[0], thumb: await shrinkDataUrl(pages[0], 300) };
+    const b = $("fPhotoBtn"); if(b) b.textContent = "📸 Using the scan · change";
+    toast("Have a read through before you save.");
+  }catch(err){
+    busy(false);
+    alert(err.message || "The scan did not work.");
+  }
+});
+
+/* re-shrink an existing data URL (for the thumbnail of a scanned page) */
+function shrinkDataUrl(dataUrl, maxDim){
+  return new Promise(res=>{
+    const im = new Image();
+    im.onload = ()=>{
+      let w=im.width, h=im.height;
+      const sc = Math.min(1, maxDim/Math.max(w,h));
+      w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(im,0,0,w,h);
+      res(c.toDataURL("image/jpeg",.7));
+    };
+    im.onerror = ()=>res(dataUrl);
+    im.src = dataUrl;
+  });
+}
+
+/* ---------- settings ---------- */
+$("apiKey").value = localStorage.getItem(KKEY) || "";
+$("btnSaveKey").addEventListener("click", ()=>{
+  const v = $("apiKey").value.trim();
+  if(v) localStorage.setItem(KKEY, v); else localStorage.removeItem(KKEY);
+  toast(v ? "Key saved on this phone." : "Key removed.");
+});
+
+function download(name, text, type){
+  const blob = new Blob([text], { type: type || "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 200);
+}
+$("btnBackup").addEventListener("click", async ()=>{
+  busy(true, "Packing it up…", "Photos take a moment.");
+  try{
+    const photos = {};
+    for(const k of await imgKeys()){
+      if(db.recipes.some(r=>r.id===k)) photos[k] = await imgGet(k);
+    }
+    const out = { v:1, saved: todayISO(), book: db, photos: photos };
+    download("recipes-" + todayISO() + ".json", JSON.stringify(out));
+    busy(false); toast("Backup saved to your downloads.");
+  }catch(e){ busy(false); alert("Backup failed: " + e.message); }
+});
+$("btnRestore").addEventListener("click", ()=> $("fileRestore").click());
+$("fileRestore").addEventListener("change", e=>{
+  const f = e.target.files[0]; e.target.value = "";
+  if(!f) return;
+  const fr = new FileReader();
+  fr.onload = async ()=>{
+    try{
+      const d = JSON.parse(fr.result);
+      const book = d.book || d;
+      if(!book || !Array.isArray(book.recipes)) throw new Error("That is not a recipe backup.");
+      if(!confirm("Replace everything on this phone with the " + book.recipes.length + " recipes in this file?")) return;
+      db = book; save(); applyName(); applyTheme();
+      busy(true, "Putting the photos back…", "");
+      const photos = d.photos || {};
+      for(const k of Object.keys(photos)){ try{ await imgPut(k, photos[k]); }catch(x){} }
+      busy(false);
+      renderHome(); renderAll(); show("home");
+      toast("Restored " + book.recipes.length + " recipes.");
+    }catch(err){ busy(false); alert(err.message); }
+  };
+  fr.readAsText(f);
+});
+$("btnCsv").addEventListener("click", ()=>{
+  const q = s => '"' + String(s==null?"":s).replace(/"/g,'""') + '"';
+  const rows = [["Recipe","Tags","Serves","Prep min","Cook min","Rating","Times made","Last made","Source","Ingredients","Method","Notes"].map(q).join(",")];
+  db.recipes.slice().sort((a,b)=>(a.title||"").localeCompare(b.title||"")).forEach(r=>{
+    rows.push([
+      r.title, (r.tags||[]).join(" "), r.servings, r.prep||"", r.cook||"", r.rating||"",
+      (r.made||[]).length, lastMade(r)||"", r.source,
+      (r.ingredients||[]).join(" | "), (r.method||[]).join(" | "), r.notes
+    ].map(q).join(","));
+  });
+  download("recipes-" + todayISO() + ".csv", rows.join("\r\n"), "text/csv");
+});
+
+/* ---------- go ---------- */
+applyTheme(); applyName(); renderHome(); renderAll();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
