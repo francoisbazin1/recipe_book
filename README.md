@@ -22,6 +22,9 @@ in the browser on the phone it is installed on.
   always there to check against. Tap one to enlarge it, make it the main picture, or delete it.
 - **Per recipe** — a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
+- **Keep the screen on while I cook** — a toggle on the recipe. Holds a screen wake lock so the
+  phone stops dimming mid-method with floury hands. Released when you leave the recipe, and after
+  three hours regardless. Hidden on browsers that do not support it.
 - **Half it or double it** — ½× 1× 1½× 2× above the ingredients. Only the quantity at the front
   of each line moves, so "2 x 400 g tin" doubles to "4 x 400 g tin" and never "4 x 800 g".
   Grams and millilitres read as decimals, cups and spoons as fractions. The stored recipe is

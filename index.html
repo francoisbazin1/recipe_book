@@ -147,6 +147,12 @@
     background:rgba(0,0,0,.6);color:#fff}
   .shot.cover img{box-shadow:0 0 0 2.5px var(--accent)}
   .bigshot{width:100%;border-radius:14px;display:block;margin-bottom:4px}
+  .cookbtn{
+    display:block;width:100%;border:none;cursor:pointer;font-family:inherit;
+    background:var(--chip);color:var(--chip-ink);
+    font-size:14.5px;font-weight:600;padding:13px 16px;border-radius:16px;margin-bottom:14px;
+  }
+  .cookbtn.on{background:var(--accent);color:var(--accent-ink)}
 
   /* recipe cards */
   .rlist{display:flex;flex-direction:column;gap:10px}
@@ -334,6 +340,7 @@
     <div class="dmeta" id="dMeta"></div>
 
     <button class="bigbtn" id="btnMade">🍽️ We made this today</button>
+    <button class="cookbtn" id="btnCook"></button>
 
     <div class="card" id="cardIng">
       <h2>INGREDIENTS <span style="font-weight:400;text-transform:none">· tap to tick off</span></h2>
@@ -715,6 +722,7 @@ $("appTitle").addEventListener("click", ()=>{
 
 /* ---------- tabs ---------- */
 function show(tab){
+  if(tab !== "detail" && wakeWanted) cookOff(true);
   document.querySelectorAll(".tab").forEach(s=>s.classList.remove("active"));
   $("tab-"+tab).classList.add("active");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===tab));
@@ -1053,6 +1061,8 @@ function renderDetail(){
     cm.appendChild(d);
   });
 
+  drawCookBtn();
+
   const made = (r.made||[]).slice().sort().reverse();
   $("dMade").textContent = made.length ? made.map(fmtDate).join(" · ") : "";
   $("cardMade").classList.toggle("hidden", !made.length);
@@ -1129,6 +1139,56 @@ $("fileShot").addEventListener("change", async e=>{
     alert("That picture would not save. " + (err.message || ""));
   }
 });
+
+/* ---------- keeping the screen awake while she cooks ---------- */
+let wakeLock = null;      /* the live lock, dropped by the phone whenever the app is hidden */
+let wakeWanted = false;   /* what she asked for, which survives the phone dropping it */
+let wakeTimer = null;
+
+const canWake = () => "wakeLock" in navigator;
+
+async function wakeGrab(){
+  if(!canWake() || wakeLock) return false;
+  try{
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", ()=>{ wakeLock = null; drawCookBtn(); });
+    return true;
+  }catch(e){ return false; }
+}
+async function cookOn(){
+  const got = await wakeGrab();
+  if(!got){
+    alert("This phone will not let the app hold the screen on. "
+        + "You can turn the screen timeout up in the phone's own display settings instead.");
+    return;
+  }
+  wakeWanted = true;
+  clearTimeout(wakeTimer);
+  wakeTimer = setTimeout(cookOff, 3 * 60 * 60 * 1000);   /* never leave it on all night */
+  drawCookBtn();
+  toast("Screen will stay on while you cook.");
+}
+async function cookOff(quiet){
+  wakeWanted = false;
+  clearTimeout(wakeTimer); wakeTimer = null;
+  if(wakeLock){ try{ await wakeLock.release(); }catch(e){} wakeLock = null; }
+  drawCookBtn();
+  if(!quiet) toast("Screen can sleep again.");
+}
+/* the phone releases the lock every time she switches apps, so take it back */
+document.addEventListener("visibilitychange", ()=>{
+  if(wakeWanted && document.visibilityState === "visible") wakeGrab().then(drawCookBtn);
+});
+function drawCookBtn(){
+  const b = $("btnCook");
+  if(!b) return;
+  if(!canWake()){ b.classList.add("hidden"); return; }
+  b.classList.remove("hidden");
+  b.classList.toggle("on", wakeWanted);
+  b.textContent = wakeWanted ? "\ud83d\udd25 Screen staying on \u00b7 tap when you are done"
+                             : "\ud83d\udd25 Keep the screen on while I cook";
+}
+$("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
 
 $("btnBack").addEventListener("click", ()=>{ show("recipes"); renderAll(); });
 $("btnMade").addEventListener("click", ()=>{
