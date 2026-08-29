@@ -401,11 +401,6 @@ const KEY  = "recipe.book.v1";
 const KKEY = "recipe.apikey";
 const MODEL = "claude-opus-5";
 
-let db = load();
-let view = { id:null, ticked:{} };
-let fState = null;              /* recipe being edited in the sheet */
-let filterTag = null;
-
 const STARTER = [
 {
 "id": "r_lambcurry",
@@ -524,6 +519,12 @@ const STARTER = [
 "comments": []
 }
 ];
+
+
+let db = load();
+let view = { id:null, ticked:{} };
+let fState = null;              /* recipe being edited in the sheet */
+let filterTag = null;
 
 function load(){
   try{
