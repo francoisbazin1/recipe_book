@@ -16,7 +16,12 @@ in the browser on the phone it is installed on.
   nudges the ones you have not made in a while.
 - **Per recipe** — a photo, a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
+- **Send a recipe to someone** — turns it into a link. They tap it, the app asks whether to add
+  it, and that is that. No key needed at either end, and nothing of theirs is overwritten.
+  If the link opens in the wrong place (an iPhone with the app on the home screen keeps separate
+  storage from Safari), paste the link into the box in Settings instead.
 - **Backup and restore** — a JSON file with the photos in it, plus a CSV of the whole book.
+  Restoring can add to what is already there rather than replacing it.
 
 ## Install on a phone
 

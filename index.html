@@ -336,6 +336,7 @@
       <h2>MADE ON</h2>
       <div class="madelist" id="dMade"></div>
     </div>
+    <button class="ghostbtn wide" id="btnShare">📤 Send this recipe to someone</button>
     <div class="btnrow" style="margin-bottom:16px">
       <button class="ghostbtn" id="btnEdit">✎ Edit</button>
       <button class="ghostbtn danger" id="btnDelete">🗑 Delete</button>
@@ -352,13 +353,20 @@
       <div class="hint">Needed only for 📷 Scan. The key is stored on this phone and nowhere else. Photos go straight to Anthropic and come back as text. A scanned recipe costs a couple of cents.</div>
     </div>
     <div class="card">
+      <h2>ADD RECIPES SOMEONE SENT YOU</h2>
+      <textarea id="importBox" placeholder="Paste the link or the code here" style="min-height:70px"></textarea>
+      <button class="ghostbtn wide" id="btnImport" style="margin:12px 0 0">＋ Add them to my book</button>
+      <div class="hint">Tapping the link usually does it on its own. Use this box when the link
+      opens in the wrong place, which happens on an iPhone when the app is on the home screen.</div>
+    </div>
+    <div class="card">
       <h2>YOUR BOOK</h2>
       <div class="exportrow">
         <button class="ghostbtn" id="btnBackup">⬇ Backup (JSON)</button>
         <button class="ghostbtn" id="btnRestore">⬆ Restore</button>
         <button class="ghostbtn" id="btnCsv">📄 Export CSV</button>
       </div>
-      <div class="hint">Everything lives on this phone. Back up now and then, especially before changing phones. The backup includes the photos so the file can be large.</div>
+      <div class="hint">Everything lives on this phone. Back up now and then, especially before changing phones. Restoring can add to what you already have rather than replacing it, so nothing gets lost. The backup includes the photos so the file can be large.</div>
     </div>
     <div class="card">
       <h2>ABOUT</h2>
@@ -934,6 +942,29 @@ function closeSheet(){
   $("scrim").classList.remove("open");
   $("sheet").classList.remove("open");
   fState = null; pendingPhoto = null;
+  if(askResolve){ const f = askResolve; askResolve = null; f(null); }
+}
+
+/* a plain question in the sheet: resolves to the value of the button tapped, or null */
+let askResolve = null;
+function askSheet(title, html, options){
+  return new Promise(res=>{
+    $("sheetTitle").textContent = title;
+    $("sheetBody").innerHTML =
+      '<div style="font-size:14.5px;line-height:1.65;margin:8px 0 2px">' + html + '</div>' +
+      '<div id="askBtns" style="margin-top:18px"></div>';
+    options.forEach(o=>{
+      const b = document.createElement("button");
+      b.className = o.primary ? "bigbtn" : ("ghostbtn wide" + (o.danger ? " danger" : ""));
+      b.textContent = o.label;
+      b.addEventListener("click", ()=>{ askResolve = null; closeSheet(); res(o.value); });
+      $("askBtns").appendChild(b);
+    });
+    askResolve = res;
+    $("scrim").classList.add("open");
+    $("sheet").classList.add("open");
+    $("sheet").scrollTop = 0;
+  });
 }
 $("scrim").addEventListener("click", closeSheet);
 
@@ -977,6 +1008,111 @@ $("filePhoto").addEventListener("change", async e=>{
 });
 
 $("btnManual").addEventListener("click", ()=> openSheet(null));
+
+/* ---------- sharing recipes as a link ---------- */
+function b64urlEnc(bytes){
+  let out = "";
+  bytes.forEach(b => out += String.fromCharCode(b));
+  return btoa(out).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlDec(str){
+  const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+/* short keys keep the link short. Photos, ratings and cooking history are not shared. */
+const slimOf = r => ({ t:r.title, s:r.servings, p:r.prep, c:r.cook, src:r.source,
+                       tg:r.tags, i:r.ingredients, m:r.method, n:r.notes });
+function fatten(o){
+  const r = blank();                    /* a fresh id, so nothing of hers is overwritten */
+  r.title = o.t || ""; r.servings = o.s || "";
+  r.prep = o.p || null; r.cook = o.c || null;
+  r.source = o.src || ""; r.tags = o.tg || [];
+  r.ingredients = o.i || []; r.method = o.m || []; r.notes = o.n || "";
+  return r;
+}
+async function packRecipes(list){
+  const bytes = new TextEncoder().encode(JSON.stringify(list.map(slimOf)));
+  if(typeof CompressionStream === "function"){
+    try{
+      const buf = await new Response(
+        new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))
+      ).arrayBuffer();
+      return "z" + b64urlEnc(new Uint8Array(buf));
+    }catch(e){}
+  }
+  return "p" + b64urlEnc(bytes);
+}
+async function unpackRecipes(code){
+  let bytes = b64urlDec(code.slice(1));
+  if(code[0] === "z"){
+    const buf = await new Response(
+      new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))
+    ).arrayBuffer();
+    bytes = new Uint8Array(buf);
+  }
+  const parsed = JSON.parse(new TextDecoder().decode(bytes));
+  return (Array.isArray(parsed) ? parsed : [parsed]).map(fatten);
+}
+async function shareRecipe(r){
+  const url = location.origin + location.pathname + "#r=" + (await packRecipes([r]));
+  if(navigator.share){
+    try{ await navigator.share({ title: r.title, text: r.title, url: url }); return; }
+    catch(e){ if(e && e.name === "AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Link copied. Paste it into a message."); }
+  catch(e){ prompt("Copy this link and send it:", url); }
+}
+$("btnShare").addEventListener("click", ()=>{
+  const r = byId(view.id);
+  if(r) shareRecipe(r);
+});
+
+/* the receiving end: a tapped link, or a code pasted in Settings */
+async function offerImport(code){
+  let list;
+  try{
+    list = await unpackRecipes(code);
+    if(!list.length) throw new Error("empty");
+  }catch(e){
+    alert("That link or code did not work. Ask for it again, and make sure the whole thing came across.");
+    return;
+  }
+  const names = list.map(r => "\u2022 " + esc(r.title || "Untitled")).join("<br>");
+  const dupes = list.filter(r => db.recipes.some(x => (x.title||"").toLowerCase() === (r.title||"").toLowerCase()));
+  const ans = await askSheet(list.length === 1 ? "Someone sent you a recipe" : "Someone sent you " + list.length + " recipes",
+    names +
+    (dupes.length ? "<br><br>You already have " + (dupes.length === 1 ? "one by that name" : dupes.length + " of these by name") +
+                    ", so you would end up with two copies." : ""),
+    [{ label: list.length === 1 ? "Add it to my book" : "Add them to my book", value:"add", primary:true },
+     { label:"No thanks", value:null }]);
+  if(ans !== "add") return;
+  list.forEach(r => db.recipes.push(r));
+  save();
+  renderHome(); renderAll();
+  if(list.length === 1) openDetail(list[0].id); else { show("recipes"); }
+  toast(list.length === 1 ? "Added to your book." : "Added " + list.length + " recipes.");
+}
+function codeFromText(txt){
+  const m = /[#&?]r=([A-Za-z0-9_-]+)/.exec(txt || "");
+  if(m) return m[1];
+  const t = (txt || "").trim();
+  return /^[zp][A-Za-z0-9_-]+$/.test(t) ? t : null;
+}
+function checkShareLink(){
+  const code = codeFromText(location.hash);
+  if(!code) return;
+  history.replaceState(null, "", location.pathname);
+  offerImport(code);
+}
+window.addEventListener("hashchange", checkShareLink);
+$("btnImport").addEventListener("click", ()=>{
+  const code = codeFromText($("importBox").value);
+  if(!code){ toast("Paste the whole link or code first."); return; }
+  $("importBox").value = "";
+  offerImport(code);
+});
 
 /* ---------- scan with Claude ---------- */
 const SCHEMA = {
@@ -1145,14 +1281,31 @@ $("fileRestore").addEventListener("change", e=>{
       const d = JSON.parse(fr.result);
       const book = d.book || d;
       if(!book || !Array.isArray(book.recipes)) throw new Error("That is not a recipe backup.");
-      if(!confirm("Replace everything on this phone with the " + book.recipes.length + " recipes in this file?")) return;
-      db = book; save(); applyName(); applyTheme();
-      busy(true, "Putting the photos back…", "");
+      const have = new Set(db.recipes.map(r => r.id));
+      const fresh = book.recipes.filter(r => !have.has(r.id));
+      const ans = await askSheet("Restore from a backup",
+        "This file holds <b>" + book.recipes.length + "</b> recipes, " +
+        (fresh.length ? "<b>" + fresh.length + "</b> of them new to this phone."
+                      : "all of which you already have."),
+        [{ label:"Add the new ones to my book", value:"merge", primary:true },
+         { label:"Replace everything I have", value:"replace", danger:true },
+         { label:"Cancel", value:null }]);
+      if(!ans) return;
+
       const photos = d.photos || {};
-      for(const k of Object.keys(photos)){ try{ await imgPut(k, photos[k]); }catch(x){} }
+      let n;
+      if(ans === "replace"){ db = book; n = book.recipes.length; }
+      else { fresh.forEach(r => db.recipes.push(r)); n = fresh.length; }
+      save(); applyName(); applyTheme();
+      busy(true, "Putting the photos back…", "");
+      const wanted = new Set(db.recipes.map(r => r.id));
+      for(const k of Object.keys(photos)){
+        if(wanted.has(k)){ try{ await imgPut(k, photos[k]); }catch(x){} }
+      }
       busy(false);
       renderHome(); renderAll(); show("home");
-      toast("Restored " + book.recipes.length + " recipes.");
+      toast(ans === "replace" ? ("Restored " + n + " recipes.")
+                              : (n ? "Added " + n + " recipes." : "Nothing new in that file."));
     }catch(err){ busy(false); alert(err.message); }
   };
   fr.readAsText(f);
@@ -1171,7 +1324,7 @@ $("btnCsv").addEventListener("click", ()=>{
 });
 
 /* ---------- go ---------- */
-applyTheme(); applyName(); renderHome(); renderAll();
+applyTheme(); applyName(); renderHome(); renderAll(); checkShareLink();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 </script>
 </body>
