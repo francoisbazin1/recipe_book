@@ -129,6 +129,11 @@
   .searchwrap{position:relative;margin-bottom:12px}
   .searchwrap input{padding-left:38px;border-radius:14px}
   .searchwrap .mg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+  .flabel{font-size:10.5px;font-weight:700;letter-spacing:.7px;color:var(--muted);
+    margin:2px 4px 7px;text-transform:uppercase}
+  .filters{margin-bottom:14px}
+  .filters .chips{margin-bottom:12px}
+  .filters .chips:last-child{margin-bottom:0}
 
   /* recipe cards */
   .rlist{display:flex;flex-direction:column;gap:10px}
@@ -301,7 +306,10 @@
       <span class="mg">🔍</span>
       <input type="search" id="search" placeholder="Search name or ingredient…" autocomplete="off">
     </div>
-    <div class="chips" id="tagFilter" style="margin-bottom:14px"></div>
+    <div class="filters">
+      <div id="tagWrap"><div class="flabel">Tags</div><div class="chips" id="tagFilter"></div></div>
+      <div id="srcWrap"><div class="flabel">Where from</div><div class="chips" id="srcFilter"></div></div>
+    </div>
     <div class="rlist" id="allList"></div>
   </section>
 
@@ -409,6 +417,10 @@ const KEY  = "recipe.book.v1";
 const KKEY = "recipe.apikey";
 const MODEL = "claude-opus-5";
 
+/* where recipes come from. Her own additions join this list as she uses them. */
+const BASE_SOURCES = ["The book", "Coles magazine", "RecipeTin Eats", "taste.com.au",
+                      "Woolworths", "Instagram", "From a friend"];
+
 const STARTER = [
 {
 "id": "r_lambcurry",
@@ -416,7 +428,7 @@ const STARTER = [
 "servings": "",
 "prep": 20,
 "cook": 150,
-"source": "Recipe book",
+"source": "The book",
 "tags": [
 "dinner",
 "lamb",
@@ -458,7 +470,7 @@ const STARTER = [
 "servings": "",
 "prep": 30,
 "cook": null,
-"source": "Recipe book",
+"source": "The book",
 "tags": [
 "dessert",
 "no bake",
@@ -495,7 +507,7 @@ const STARTER = [
 "servings": "",
 "prep": 20,
 "cook": 35,
-"source": "Recipe book",
+"source": "The book",
 "tags": [
 "dinner",
 "vegetarian",
@@ -533,6 +545,7 @@ let db = load();
 let view = { id:null, ticked:{} };
 let fState = null;              /* recipe being edited in the sheet */
 let filterTag = null;
+let filterSource = null;
 
 function load(){
   try{
@@ -686,6 +699,7 @@ function servesWords(s){
 }
 function metaLine(r){
   const bits = [];
+  if(r.source) bits.push(r.source);
   const sv = servesWords(r.servings);
   if(sv) bits.push(sv);
   const lm = lastMade(r);
@@ -754,37 +768,59 @@ function allTags(){
   db.recipes.forEach(r => (r.tags||[]).forEach(t => s.add(t)));
   return Array.from(s).sort();
 }
-function renderTagFilter(){
-  const el = $("tagFilter"); el.innerHTML = "";
-  const tags = allTags();
-  if(!tags.length) return;
-  tags.forEach(t=>{
+function allSources(){
+  const s = new Set();
+  db.recipes.forEach(r => { if(r.source) s.add(r.source); });
+  return Array.from(s).sort((a,b)=>a.localeCompare(b));
+}
+/* everything she might pick in the sheet: the standard list, plus whatever she has used */
+function sourceChoices(current){
+  const out = BASE_SOURCES.slice();
+  allSources().forEach(x => { if(!out.includes(x)) out.push(x); });
+  if(current && !out.includes(current)) out.unshift(current);
+  return out;
+}
+function chipRow(el, items, isOn, onPick){
+  el.innerHTML = "";
+  items.forEach(t=>{
     const b = document.createElement("button");
-    b.className = "chip" + (filterTag===t ? " on" : "");
+    b.className = "chip" + (isOn(t) ? " on" : "");
     b.textContent = t;
-    b.addEventListener("click", ()=>{ filterTag = filterTag===t ? null : t; renderAll(); });
+    b.addEventListener("click", ()=> onPick(t));
     el.appendChild(b);
   });
+}
+function renderFilters(){
+  const tags = allTags(), srcs = allSources();
+  $("tagWrap").classList.toggle("hidden", !tags.length);
+  $("srcWrap").classList.toggle("hidden", !srcs.length);
+  chipRow($("tagFilter"), tags, t => filterTag === t,
+    t => { filterTag = filterTag === t ? null : t; renderAll(); });
+  chipRow($("srcFilter"), srcs, x => filterSource === x,
+    x => { filterSource = filterSource === x ? null : x; renderAll(); });
 }
 function searchHit(r, q){
   if(!q) return { ok:true, hint:null };
   const inTitle = (r.title||"").toLowerCase().includes(q);
   const tag = (r.tags||[]).find(t => t.toLowerCase().includes(q));
   const ing = (r.ingredients||[]).find(i => i.toLowerCase().includes(q));
+  const src = (r.source||"").toLowerCase().includes(q);
   const mth = (r.method||[]).some(m => m.toLowerCase().includes(q));
   const note = (r.notes||"").toLowerCase().includes(q);
   if(inTitle) return { ok:true, hint:null };
   if(ing) return { ok:true, hint:"has " + ing };
   if(tag) return { ok:true, hint:"tagged " + tag };
+  if(src) return { ok:true, hint:"from " + r.source };
   if(mth || note) return { ok:true, hint:"mentioned in the method" };
   return { ok:false };
 }
 function renderAll(){
-  renderTagFilter();
+  renderFilters();
   const q = $("search").value.trim().toLowerCase();
   const out = [];
   db.recipes.forEach(r=>{
     if(filterTag && !(r.tags||[]).includes(filterTag)) return;
+    if(filterSource && r.source !== filterSource) return;
     const h = searchHit(r, q);
     if(h.ok) out.push([r, h.hint]);
   });
@@ -913,7 +949,7 @@ function openSheet(r){
     '<label class="f">Ingredients, one per line</label><textarea id="fIng" placeholder="2 cups plain flour&#10;200 g butter, softened"></textarea>' +
     '<label class="f">Method, one step per line</label><textarea id="fMth" style="min-height:120px"></textarea>' +
     '<label class="f">Tags, comma separated</label><input type="text" id="fTags" placeholder="dinner, chicken, quick">' +
-    '<label class="f">Where it came from</label><input type="text" id="fSrc" placeholder="Nan\'s book p.42 / taste.com.au">' +
+    '<label class="f">Where it came from</label><div class="chips" id="fSrc"></div>' +
     '<label class="f">Notes</label><textarea id="fNotes" placeholder="Halve the sugar. Freezes well."></textarea>' +
     '<label class="f">Photo of the dish</label>' +
     '<button class="ghostbtn wide" id="fPhotoBtn" style="margin:0">📸 Choose a photo</button>' +
@@ -927,7 +963,7 @@ function openSheet(r){
   $("fIng").value   = (fState.ingredients||[]).join("\n");
   $("fMth").value   = (fState.method||[]).join("\n");
   $("fTags").value  = (fState.tags||[]).join(", ");
-  $("fSrc").value   = fState.source || "";
+  sourceRow();
   $("fNotes").value = fState.notes || "";
 
   $("fPhotoBtn").addEventListener("click", ()=> $("filePhoto").click());
@@ -938,6 +974,30 @@ function openSheet(r){
   $("sheet").classList.add("open");
   $("sheet").scrollTop = 0;
 }
+function sourceRow(){
+  const el = $("fSrc");
+  if(!el || !fState) return;
+  el.innerHTML = "";
+  sourceChoices(fState.source).forEach(name=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (fState.source === name ? " on" : "");
+    b.textContent = name;
+    b.addEventListener("click", ()=>{
+      fState.source = (fState.source === name) ? "" : name;
+      sourceRow();
+    });
+    el.appendChild(b);
+  });
+  const add = document.createElement("button");
+  add.className = "chip add";
+  add.textContent = "＋ Somewhere else";
+  add.addEventListener("click", ()=>{
+    const v = prompt("Where did this one come from?", fState.source || "");
+    if(v && v.trim()){ fState.source = v.trim(); sourceRow(); }
+  });
+  el.appendChild(add);
+}
+
 function closeSheet(){
   $("scrim").classList.remove("open");
   $("sheet").classList.remove("open");
@@ -977,7 +1037,7 @@ async function saveSheet(){
   r.ingredients = lines($("fIng").value);
   r.method      = lines($("fMth").value);
   r.tags      = $("fTags").value.split(",").map(t=>t.trim().toLowerCase()).filter(Boolean);
-  r.source    = $("fSrc").value.trim();
+  r.source    = (fState.source || "").trim();
   r.notes     = $("fNotes").value.trim();
   if(!r.title && !r.ingredients.length){ toast("Give it a name at least."); return; }
   if(!r.title) r.title = "Untitled recipe";
@@ -1140,7 +1200,9 @@ const PROMPT =
 "- servings: how many it serves, as written (\"4\", \"makes 12\"). Empty string if it is not stated.\n" +
 "- prep_minutes and cook_minutes: whole minutes if stated, otherwise null. Never guess.\n" +
 "- tags: two to four short lowercase words describing it, such as dinner, baking, chicken, vegetarian, dessert, slow cooker.\n" +
-"- source: the book, website or author if it is visible, otherwise an empty string.\n" +
+"- source: where it came from, named plainly and consistently: the website (\"RecipeTin Eats\", " +
+"\"taste.com.au\"), the magazine (\"Coles magazine\"), or the book and page (\"Nan\'s book p.42\"). " +
+"If the pictures are of a handwritten page in a notebook, use \"The book\". Empty string if there is no clue.\n" +
 "- notes: anything on the page that is not an ingredient or a step, such as a tip, a variation or a serving suggestion. Empty string if there is none.\n" +
 "- Use Australian English and the units on the page. Never invent an ingredient, a quantity or a step that is not there.\n" +
 "If the pictures are several pages of the same recipe, treat them as one recipe in the order given.";

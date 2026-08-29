@@ -10,6 +10,9 @@ in the browser on the phone it is installed on.
   times, ready to check and save. Needs your own Claude API key (Settings). A scan costs a
   couple of cents.
 - **Type one in** — same form, no key needed.
+- **Where it came from** — every recipe carries a source, picked from chips (The book, Coles
+  magazine, RecipeTin Eats, and whatever else she adds). The Recipes tab filters by it, and the
+  scanner fills it in from the page.
 - **Search by name or by ingredient** — typing `butter` finds every recipe with butter in it
   and tells you which line matched. Tag chips narrow it further.
 - **Cooked lately / maybe tonight** — the kitchen page shows what you have made recently and
