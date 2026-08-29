@@ -65,8 +65,7 @@
   header{display:flex;align-items:center;gap:10px;padding:18px 18px 8px}
   header .logo{width:34px;height:34px;flex:none}
   header h1{font-size:20px;font-weight:700;letter-spacing:.2px;flex:1}
-  header h1 small{display:block;font-size:12px;font-weight:500;color:var(--ink2)}
-  .iconbtn{
+    .iconbtn{
     border:none;background:var(--surface);color:var(--ink2);
     width:38px;height:38px;border-radius:12px;font-size:17px;
     box-shadow:0 1px 0 var(--ring), var(--shadow); cursor:pointer;
@@ -282,7 +281,7 @@
       <path d="M42 16v32"/>
     </g>
   </svg>
-  <h1 id="appTitle" title="Tap to rename">Recipe Book<small id="subGreet">Keep the good ones</small></h1>
+  <h1 id="appTitle" title="Tap to rename">Recipe Book</h1>
   <button class="iconbtn" id="themeBtn" title="Light / dark">🌙</button>
 </header>
 
@@ -709,15 +708,12 @@ $("themeBtn").addEventListener("click", ()=>{
 function applyName(){
   const t = $("appTitle");
   t.childNodes[0].nodeValue = db.name || "Recipe Book";
-  $("subGreet").textContent = db.sub || "Keep the good ones";
   document.title = db.name || "Recipe Book";
 }
 $("appTitle").addEventListener("click", ()=>{
   const n = prompt("Call it what you like.", db.name||"Recipe Book");
   if(n === null) return;
   db.name = n.trim();
-  const sub = prompt("And the line underneath?", db.sub||"Keep the good ones");
-  if(sub !== null) db.sub = sub.trim();
   save(); applyName();
 });
 
