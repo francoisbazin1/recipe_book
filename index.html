@@ -203,6 +203,18 @@
     border:none;cursor:pointer;font-family:inherit;background:var(--chip);color:var(--chip-ink);
     font-size:13.5px;font-weight:650;padding:11px 15px;border-radius:14px;flex:none;
   }
+
+  /* the plan */
+  .planwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+  .plan{display:block;min-width:100%}
+  .plan text{font-family:inherit}
+  .plankey{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin:10px 2px 0}
+  .plankey i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;
+    vertical-align:-1px}
+  .planline{font-size:13.5px;line-height:1.6;margin-bottom:10px}
+  .planline b{font-weight:700}
+  .planhelp{font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:12px}
+  .planhelp .w{font-weight:650;color:var(--ink)}
   @keyframes ding{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
@@ -420,6 +432,16 @@
     <button class="bigbtn" id="btnMade">Cooked today</button>
     <button class="cookbtn" id="btnCook"></button>
     <button class="bigbtn" id="btnCookMode" style="margin:0 0 14px">Cook it step by step</button>
+
+    <div class="card" id="cardPlan">
+      <h2>THE PLAN <span class="peek hidden" id="planRedo">work it out again</span></h2>
+      <div id="planEmpty">
+        <div class="hint" style="margin:0 0 12px">Turn the method into jobs with times, so you can
+        see what runs while something else is on, and what someone else could take.</div>
+        <button class="ghostbtn wide" id="btnPlan" style="margin:0">Work out a plan</button>
+      </div>
+      <div id="planOut" class="hidden"></div>
+    </div>
 
     <div class="card" id="cardTimer">
       <h2>TIMER</h2>
@@ -1213,6 +1235,7 @@ function renderDetail(){
   });
 
   drawCookBtn();
+  drawPlan(r);
   timerPresets();
   timerDraw();
 
@@ -1377,6 +1400,207 @@ function drawCookBtn(){
   b.textContent = wakeWanted ? "Screen on \u00b7 tap to stop" : "Keep the screen on";
 }
 $("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
+
+/* ---------- working out the plan ---------- */
+const PLAN_SCHEMA = {
+  type:"object",
+  properties:{
+    tasks:{ type:"array", items:{
+      type:"object",
+      properties:{
+        id:      { type:"string" },
+        what:    { type:"string" },
+        minutes: { type:"integer" },
+        hands_on:{ type:"boolean" },
+        needs:   { type:"array", items:{ type:"string" } },
+        station: { type:"string" }
+      },
+      required:["id","what","minutes","hands_on","needs","station"],
+      additionalProperties:false
+    }}
+  },
+  required:["tasks"],
+  additionalProperties:false
+};
+const PLAN_PROMPT =
+"Break this recipe into the jobs someone actually does, in order, so a cook can see what can "
++ "run at the same time.\n\n"
++ "Rules:\n"
++ "- Split a written step into more than one job when it mixes doing and waiting. Chopping while "
++ "something browns is two jobs, not one.\n"
++ "- hands_on false means the cook is free: simmering, baking, chilling, resting, marinating, "
++ "the oven heating. hands_on true means they are standing there doing it.\n"
++ "- minutes: whole minutes. Use the time written in the recipe where there is one. Where there "
++ "is none, give a sensible estimate for the job.\n"
++ "- needs: the ids of jobs that must finish before this one can start. Only put one there if it "
++ "is genuinely required, because the job uses what the other produced, or needs the same pan, "
++ "oven or hob. Jobs that are independent must have an empty needs list, that is the whole point.\n"
++ "- station: one word for where it happens: bench, stove, oven, fridge, sink.\n"
++ "- ids: t1, t2, t3 and so on, in the order the recipe is written.\n"
++ "Do not invent work that is not in the recipe.";
+
+/* earliest start for every job, given only what must come first */
+function schedule(tasks){
+  const by = {};
+  tasks.forEach(t => by[t.id] = t);
+  const start = {}, end = {};
+  const settle = (t, guard) => {
+    if(end[t.id] !== undefined) return end[t.id];
+    if(guard > 60) return 0;                      /* a loop in the dependencies */
+    let s = 0;
+    (t.needs||[]).forEach(n=>{
+      if(by[n] && n !== t.id) s = Math.max(s, settle(by[n], guard+1));
+    });
+    start[t.id] = s;
+    end[t.id] = s + Math.max(1, t.minutes||0);
+    return end[t.id];
+  };
+  tasks.forEach(t => settle(t, 0));
+  return { start:start, end:end, makespan: Math.max(0, ...tasks.map(t => end[t.id])) };
+}
+/* the same, but one person: only one hands-on job at a time */
+function soloMakespan(tasks){
+  const by = {}; tasks.forEach(t => by[t.id] = t);
+  const done = {}, left = tasks.slice();
+  let clock = 0, hands = 0, guard = 0;
+  while(left.length && guard++ < 400){
+    const ready = left.filter(t => (t.needs||[]).every(n => !by[n] || done[n] !== undefined && done[n] <= clock));
+    const free = ready.filter(t => !t.hands_on);
+    free.forEach(t=>{
+      done[t.id] = clock + Math.max(1, t.minutes||0);
+      left.splice(left.indexOf(t), 1);
+    });
+    const busy = ready.filter(t => t.hands_on);
+    if(busy.length && hands <= clock){
+      const t = busy[0];
+      const st = Math.max(clock, hands);
+      done[t.id] = st + Math.max(1, t.minutes||0);
+      hands = done[t.id];
+      left.splice(left.indexOf(t), 1);
+      continue;
+    }
+    const times = Object.keys(done).map(k => done[k]).filter(v => v > clock);
+    if(hands > clock) times.push(hands);
+    if(!times.length) break;
+    clock = Math.min.apply(null, times);
+  }
+  return Math.max(0, ...Object.keys(done).map(k => done[k]));
+}
+
+function drawPlan(r){
+  const out = $("planOut"), empty = $("planEmpty");
+  const plan = r.plan;
+  $("planRedo").classList.toggle("hidden", !plan);
+  empty.classList.toggle("hidden", !!plan);
+  out.classList.toggle("hidden", !plan);
+  if(!plan) return;
+
+  const tasks = plan.tasks || [];
+  const sc = schedule(tasks);
+  const order = tasks.slice().sort((a,b)=> (sc.start[a.id] - sc.start[b.id]) || 0);
+  const total = sc.makespan;
+  const handsOn = tasks.filter(t=>t.hands_on).reduce((n,t)=> n + Math.max(1,t.minutes||0), 0);
+  const solo = soloMakespan(tasks);
+
+  const W = 340, ROW = 34, PAD_L = 8, PAD_R = 8, TOP = 16;
+  const H = TOP + order.length * ROW + 20;
+  const x = m => PAD_L + (m / Math.max(1,total)) * (W - PAD_L - PAD_R);
+
+  let svg = '<svg class="plan" viewBox="0 0 ' + W + ' ' + H + '" role="img">';
+  /* hour or half-hour gridlines, whichever keeps it readable */
+  const gap = total > 180 ? 60 : total > 60 ? 30 : total > 20 ? 10 : 5;
+  for(let m = 0; m <= total; m += gap){
+    svg += '<line x1="' + x(m).toFixed(1) + '" y1="' + TOP + '" x2="' + x(m).toFixed(1)
+        + '" y2="' + (H-18) + '" style="stroke:var(--grid)" stroke-width="1"/>'
+        + '<text x="' + x(m).toFixed(1) + '" y="' + (H-6) + '" font-size="9" text-anchor="middle" '
+        + 'style="fill:var(--muted)">' + (m >= 60 ? (m/60) + "h" : m) + '</text>';
+  }
+  order.forEach((t,i)=>{
+    const y = TOP + i * ROW;
+    const x1 = x(sc.start[t.id]), x2 = x(sc.end[t.id]);
+    const w = Math.max(3, x2 - x1);
+    svg += '<rect x="' + x1.toFixed(1) + '" y="' + (y+13) + '" width="' + w.toFixed(1)
+        + '" height="9" rx="4.5" style="fill:var(--accent);opacity:'
+        + (t.hands_on ? '1' : '.32') + '"/>';
+    svg += '<text x="' + PAD_L + '" y="' + (y+9) + '" font-size="10.5" style="fill:var(--ink)">'
+        + esc((t.what||"").slice(0,44)) + '</text>';
+  });
+  svg += '</svg>';
+
+  /* what fits inside a wait: anything that does not have to happen before it,
+     and does not depend on it. That is the job you hand to someone else. */
+  const by = {}; tasks.forEach(t => by[t.id] = t);
+  function reach(id, key, seen){
+    seen = seen || new Set();
+    const t = by[id];
+    if(!t) return seen;
+    const nxt = key === "up" ? (t.needs||[])
+                             : tasks.filter(o => (o.needs||[]).indexOf(id) >= 0).map(o => o.id);
+    nxt.forEach(n=>{ if(!seen.has(n)){ seen.add(n); reach(n, key, seen); } });
+    return seen;
+  }
+  const waits = order.filter(t => !t.hands_on && (t.minutes||0) >= 15)
+                     .sort((a,b)=> b.minutes - a.minutes).slice(0,1);
+  const spare = [];
+  waits.forEach(w=>{
+    const before = reach(w.id, "up"), after = reach(w.id, "down");
+    const jobs = tasks.filter(t => t.id !== w.id && !before.has(t.id) && !after.has(t.id)
+                                && (t.minutes||0) <= w.minutes).slice(0,4);
+    if(jobs.length) spare.push({ w:w, jobs:jobs });
+  });
+
+  out.innerHTML =
+    '<div class="planline"><b>' + minsWords(total) + '</b> start to finish, '
+      + '<b>' + minsWords(handsOn) + '</b> of it actually doing something.'
+      + (solo > total ? ' On your own, nearer <b>' + minsWords(solo) + '</b>.' : '')
+      + '</div>'
+    + '<div class="planwrap">' + svg + '</div>'
+    + '<div class="plankey"><span><i style="background:var(--accent)"></i>hands on</span>'
+      + '<span><i style="background:var(--accent);opacity:.32"></i>waiting, you are free</span></div>'
+    + (spare.length
+        ? '<div class="planhelp">' + spare.map(sp =>
+            'While <span class="w">' + esc(sp.w.what.toLowerCase()) + '</span> ('
+            + minsWords(sp.w.minutes) + ') there is time for '
+            + sp.jobs.map(j => esc(j.what.toLowerCase())).join(", ")
+            + '. Nothing there waits on anything else, so it can go to someone else.').join("<br><br>")
+          + '</div>'
+        : '<div class="planhelp">Every job here waits on the one before it, so there is nothing '
+          + 'to run alongside and nothing to hand over.</div>');
+}
+
+async function makePlan(){
+  const r = byId(view.id);
+  if(!r) return;
+  if(!(r.method||[]).length){ toast("This one has no method written down."); return; }
+  const key = localStorage.getItem(KKEY);
+  if(!key){ toast("Add your Claude key in Settings first."); show("settings"); return; }
+  busy(true, "Working it out\u2026", "Ten or twenty seconds.");
+  try{
+    const text = "Recipe: " + r.title
+      + "\n\nIngredients:\n" + (r.ingredients||[]).join("\n")
+      + "\n\nMethod:\n" + (r.method||[]).map((m,i)=> (i+1) + ". " + m).join("\n")
+      + (r.notes ? "\n\nNotes:\n" + r.notes : "");
+    const data = await askClaude(key, {
+      messages:[{ role:"user", content: PLAN_PROMPT + "\n\n" + text }],
+      output_config:{ effort:"low", format:{ type:"json_schema", schema: PLAN_SCHEMA } }
+    });
+    const plan = recipeFromReply(data);
+    if(!plan.tasks || !plan.tasks.length) throw new Error("No jobs came back. Try again.");
+    r.plan = plan;
+    save();
+    busy(false);
+    drawPlan(r);
+    toast("Plan ready.");
+  }catch(err){
+    busy(false);
+    alert(err.message || "That did not work.");
+  }
+}
+$("btnPlan").addEventListener("click", makePlan);
+$("planRedo").addEventListener("click", ()=>{
+  const r = byId(view.id);
+  if(r){ delete r.plan; save(); drawPlan(r); }
+});
 
 /* ---------- cooking it step by step ---------- */
 let cook = null;    /* { id, step, done:Set } */
@@ -1853,6 +2077,8 @@ async function saveSheet(){
     }
   }
 
+  const was = db.recipes.find(x => x.id === r.id);
+  if(was && was.plan && JSON.stringify(was.method) !== JSON.stringify(r.method)) delete r.plan;
   const i = db.recipes.findIndex(x=>x.id===r.id);
   if(i>=0) db.recipes[i] = r; else db.recipes.push(r);
   save();
