@@ -22,6 +22,9 @@ in the browser on the phone it is installed on.
   always there to check against. Tap one to enlarge it, make it the main picture, or delete it.
 - **Per recipe** — a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
+- **A timer** — on the recipe, with the minutes the recipe itself mentions offered as buttons
+  (it reads "simmer for 15 mins" out of the method). Leave the recipe and it follows you as a pill
+  above the nav; tap it to go back. Beeps and buzzes when it is up, and survives a reload.
 - **Keep the screen on while I cook** — a toggle on the recipe. Holds a screen wake lock so the
   phone stops dimming mid-method with floury hands. Released when you leave the recipe, and after
   three hours regardless. Hidden on browsers that do not support it.

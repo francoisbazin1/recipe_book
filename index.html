@@ -152,6 +152,20 @@
     display:block;text-align:center;line-height:20px}
   .peek{float:right;font-weight:600;text-transform:none;letter-spacing:0;
     color:var(--accent);font-size:12px;cursor:pointer}
+  .clock{font-size:40px;font-weight:700;text-align:center;letter-spacing:1px;
+    font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  .clock.done{color:var(--accent)}
+  .clockfor{font-size:12.5px;color:var(--ink2);text-align:center;margin-bottom:12px}
+  .pill{
+    position:fixed;left:50%;transform:translateX(-50%);z-index:35;
+    bottom:calc(84px + env(safe-area-inset-bottom));
+    background:var(--accent);color:var(--accent-ink);border:none;cursor:pointer;
+    font-family:inherit;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;
+    padding:10px 18px;border-radius:999px;box-shadow:var(--shadow);display:none;
+  }
+  .pill.on{display:block}
+  .pill.ding{animation:ding .6s ease infinite}
+  @keyframes ding{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
   .filters .chips:last-child{margin-bottom:0}
@@ -362,6 +376,18 @@
     <button class="bigbtn" id="btnMade">Cooked today</button>
     <button class="cookbtn" id="btnCook"></button>
 
+    <div class="card" id="cardTimer">
+      <h2>TIMER</h2>
+      <div id="timerIdle">
+        <div class="chips" id="timerPresets"></div>
+      </div>
+      <div id="timerRun" class="hidden">
+        <div class="clock" id="timerClock">00:00</div>
+        <div class="clockfor" id="timerFor"></div>
+        <button class="ghostbtn wide" id="timerStop" style="margin:0">Stop</button>
+      </div>
+    </div>
+
     <div class="card" id="cardIng">
       <h2>INGREDIENTS <span style="font-weight:400;text-transform:none">· tap to tick off</span></h2>
       <div class="scalerow" id="dScale"></div>
@@ -463,6 +489,7 @@
   </div>
 </div>
 
+<button class="pill" id="timerPill"></button>
 <div class="toast" id="toast"></div>
 
 <input type="file" id="filePages" accept="image/*" multiple class="hidden">
@@ -750,6 +777,7 @@ $("appTitle").addEventListener("click", ()=>{
 /* ---------- tabs ---------- */
 function show(tab){
   if(tab !== "detail" && wakeWanted) cookOff(true);
+  setTimeout(timerDraw, 0);
   document.querySelectorAll(".tab").forEach(s=>s.classList.remove("active"));
   $("tab-"+tab).classList.add("active");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===tab));
@@ -1100,6 +1128,8 @@ function renderDetail(){
   });
 
   drawCookBtn();
+  timerPresets();
+  timerDraw();
 
   const made = (r.made||[]).slice().sort().reverse();
   $("dMade").textContent = made.length ? made.map(fmtDate).join(" · ") : "";
@@ -1262,6 +1292,141 @@ function drawCookBtn(){
   b.textContent = wakeWanted ? "Screen on \u00b7 tap to stop" : "Keep the screen on";
 }
 $("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
+
+/* ---------- the timer ---------- */
+const TKEY = "recipe.timer";
+let timer = null;          /* { endAt, mins, recipeId, title, rang } */
+let timerTick = null;
+
+function timerLoad(){
+  try{ const t = JSON.parse(localStorage.getItem(TKEY)); if(t && t.endAt) timer = t; }catch(e){}
+}
+function timerSave(){
+  if(timer) localStorage.setItem(TKEY, JSON.stringify(timer));
+  else localStorage.removeItem(TKEY);
+}
+const timerLeft = () => timer ? Math.round((timer.endAt - Date.now()) / 1000) : 0;
+function mmss(sec){
+  const a = Math.abs(sec), m = Math.floor(a / 60), s = a % 60;
+  return (sec < 0 ? "-" : "") + m + ":" + String(s).padStart(2, "0");
+}
+
+/* a short run of beeps, no sound file to ship */
+function beep(){
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    const ctx = new Ctx();
+    [0, .45, .9].forEach(t=>{
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = 880;
+      g.gain.setValueAtTime(.0001, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(.35, ctx.currentTime + t + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + t + .34);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .36);
+    });
+    setTimeout(()=>{ try{ ctx.close(); }catch(e){} }, 2000);
+  }catch(e){}
+}
+
+function timerStart(mins, label){
+  const r = byId(view.id);
+  timer = { endAt: Date.now() + mins * 60000, mins: mins,
+            recipeId: view.id, title: r ? r.title : "", rang: false };
+  timerSave(); timerDraw();
+  toast(label || (minsWords(mins) + " set."));
+}
+function timerStop(){
+  timer = null; timerSave(); timerDraw();
+}
+function timerRang(){
+  if(!timer || timer.rang) return;
+  timer.rang = true; timerSave();
+  beep();
+  if(navigator.vibrate) navigator.vibrate([400,180,400,180,600]);
+  toast("Time's up" + (timer.title ? " \u00b7 " + timer.title : "") + ".");
+}
+function timerDraw(){
+  const pill = $("timerPill");
+  const onThis = timer && timer.recipeId === view.id
+              && $("tab-detail").classList.contains("active");
+  if(!timer){
+    pill.classList.remove("on","ding");
+    $("timerRun").classList.add("hidden");
+    $("timerIdle").classList.remove("hidden");
+    return;
+  }
+  const left = timerLeft();
+  if(left <= 0) timerRang();
+
+  $("timerRun").classList.toggle("hidden", !onThis);
+  $("timerIdle").classList.toggle("hidden", onThis);
+  if(onThis){
+    const c = $("timerClock");
+    c.textContent = left > 0 ? mmss(left) : "Time's up";
+    c.classList.toggle("done", left <= 0);
+    $("timerFor").textContent = left > 0 ? minsWords(timer.mins) + " set"
+                                         : "Tap stop to clear it.";
+  }
+  pill.classList.toggle("on", !onThis);
+  pill.classList.toggle("ding", left <= 0);
+  pill.textContent = left > 0 ? (mmss(left) + (timer.title ? " \u00b7 " + timer.title : ""))
+                              : ("Time's up" + (timer.title ? " \u00b7 " + timer.title : ""));
+}
+$("timerPill").addEventListener("click", ()=>{
+  if(!timer) return;
+  if(timerLeft() <= 0){ timerStop(); return; }
+  openDetail(timer.recipeId); show("detail");
+});
+$("timerStop").addEventListener("click", timerStop);
+
+/* minutes worth offering: the ones written in this recipe */
+function timerOptions(r){
+  const out = [];
+  const push = n => { n = Math.round(n); if(n > 0 && n <= 720 && out.indexOf(n) < 0) out.push(n); };
+  const text = (r.method||[]).join(" ") + " " + (r.notes||"");
+  const re = /(\d+(?:\.\d+)?)\s*(?:-|to|\u2013)?\s*(\d+(?:\.\d+)?)?\s*(hours?|hrs?|h|minutes?|mins?|m)\b/gi;
+  let m;
+  while((m = re.exec(text))){
+    const v = parseFloat(m[2] || m[1]);
+    push(/^h/i.test(m[3]) ? v * 60 : v);
+  }
+  if(r.cook) push(r.cook);
+  if(r.prep) push(r.prep);
+  if(out.length < 4) [5, 10, 20].forEach(push);   /* only pad when the recipe says little */
+  return out.sort((a,b)=>a-b).slice(0, 6);
+}
+function minsWords(n){
+  if(n < 60) return n + " min";
+  const h = Math.floor(n / 60), m = n % 60;
+  return h + " hr" + (m ? " " + m : "");
+}
+function timerPresets(){
+  const r = byId(view.id);
+  const el = $("timerPresets");
+  if(!r || !el) return;
+  el.innerHTML = "";
+  timerOptions(r).forEach(n=>{
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = minsWords(n);
+    b.addEventListener("click", ()=> timerStart(n));
+    el.appendChild(b);
+  });
+  const other = document.createElement("button");
+  other.className = "chip add";
+  other.textContent = "\uff0b Other";
+  other.addEventListener("click", ()=>{
+    const v = prompt("How many minutes?", "15");
+    const n = Math.round(parseFloat(v));
+    if(n > 0) timerStart(n);
+  });
+  el.appendChild(other);
+}
+timerLoad();
+timerTick = setInterval(()=>{ if(timer) timerDraw(); }, 500);
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") timerDraw(); });
 
 /* so she does not have to scroll back up mid-step */
 $("peekIng").addEventListener("click", ()=>{
