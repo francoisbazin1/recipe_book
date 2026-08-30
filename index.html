@@ -131,6 +131,27 @@
   .searchwrap .mg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
   .flabel{font-size:10.5px;font-weight:700;letter-spacing:.7px;color:var(--muted);
     margin:2px 4px 7px;text-transform:uppercase}
+  .morebtn{
+    border:none;background:none;cursor:pointer;font-family:inherit;
+    color:var(--ink2);font-size:12.5px;font-weight:600;padding:6px 4px;
+  }
+  .morebtn .x{color:var(--accent)}
+  .selbar{display:flex;gap:9px;align-items:center;margin-bottom:10px}
+  .selbar .n{flex:1;font-size:13px;color:var(--ink2);font-weight:600}
+  .linkbtn{
+    border:none;background:none;cursor:pointer;font-family:inherit;
+    color:var(--accent);font-size:13px;font-weight:650;padding:4px 2px;
+  }
+  .linkbtn.danger{color:var(--danger)}
+  .shot .pick{
+    position:absolute;right:5px;top:5px;width:20px;height:20px;border-radius:50%;
+    background:rgba(255,255,255,.85);box-shadow:0 0 0 1.5px var(--baseline);
+  }
+  .shot.picked .pick{background:var(--accent);box-shadow:0 0 0 1.5px var(--accent)}
+  .shot.picked .pick::after{content:"\2713";color:#fff;font-size:13px;font-weight:800;
+    display:block;text-align:center;line-height:20px}
+  .peek{float:right;font-weight:600;text-transform:none;letter-spacing:0;
+    color:var(--accent);font-size:12px;cursor:pointer}
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
   .filters .chips:last-child{margin-bottom:0}
@@ -323,8 +344,9 @@
       <input type="search" id="search" placeholder="Search name or ingredient" autocomplete="off">
     </div>
     <div class="filters">
-      <div id="tagWrap"><div class="flabel">Tags</div><div class="chips" id="tagFilter"></div></div>
-      <div id="srcWrap"><div class="flabel">Where from</div><div class="chips" id="srcFilter"></div></div>
+      <div id="srcWrap"><div class="chips" id="srcFilter"></div></div>
+      <button class="morebtn" id="tagToggle"></button>
+      <div id="tagWrap" class="hidden"><div class="chips" id="tagFilter"></div></div>
     </div>
     <div class="rlist" id="allList"></div>
   </section>
@@ -347,7 +369,7 @@
       <ul class="ing" id="dIng"></ul>
     </div>
     <div class="card" id="cardMth">
-      <h2>METHOD</h2>
+      <h2>METHOD <span class="peek" id="peekIng">ingredients</span></h2>
       <ol class="mth" id="dMth"></ol>
     </div>
     <div class="card" id="cardNotes">
@@ -356,8 +378,16 @@
     </div>
     <div class="card" id="cardPhotos">
       <h2>PHOTOS</h2>
+      <div class="selbar hidden" id="shotBar">
+        <span class="n" id="shotN"></span>
+        <button class="linkbtn danger" id="shotDel">Delete</button>
+        <button class="linkbtn" id="shotCancel">Cancel</button>
+      </div>
       <div class="shots" id="dShots"></div>
-      <button class="ghostbtn wide" id="btnAddPhoto" style="margin:0">Add a photo</button>
+      <div class="selbar" id="shotTools">
+        <button class="ghostbtn wide" id="btnAddPhoto" style="margin:0">Add a photo</button>
+        <button class="linkbtn hidden" id="shotPick">Choose</button>
+      </div>
     </div>
     <div class="card">
       <h2>HOW IT WENT</h2>
@@ -833,15 +863,26 @@ function chipRow(el, items, isOn, onPick){
     el.appendChild(b);
   });
 }
+let tagsOpen = false;
 function renderFilters(){
   const tags = allTags(), srcs = allSources();
-  $("tagWrap").classList.toggle("hidden", !tags.length);
   $("srcWrap").classList.toggle("hidden", !srcs.length);
-  chipRow($("tagFilter"), tags, t => filterTag === t,
-    t => { filterTag = filterTag === t ? null : t; renderAll(); });
   chipRow($("srcFilter"), srcs, x => filterSource === x,
     x => { filterSource = filterSource === x ? null : x; renderAll(); });
+
+  const tg = $("tagToggle");
+  tg.classList.toggle("hidden", !tags.length);
+  if(filterTag)      tg.innerHTML = "Tags \u00b7 " + esc(filterTag) + ' <span class="x">\u2715</span>';
+  else               tg.textContent = "Tags " + (tagsOpen ? "\u25b4" : "\u25be");
+  $("tagWrap").classList.toggle("hidden", !tagsOpen || !tags.length);
+  chipRow($("tagFilter"), tags, t => filterTag === t,
+    t => { filterTag = filterTag === t ? null : t; renderAll(); });
 }
+$("tagToggle").addEventListener("click", ()=>{
+  if(filterTag){ filterTag = null; }        /* the cross clears it */
+  else tagsOpen = !tagsOpen;
+  renderAll();
+});
 function searchHit(r, q){
   if(!q) return { ok:true, hint:null };
   const inTitle = (r.title||"").toLowerCase().includes(q);
@@ -980,6 +1021,7 @@ function findSimilar(rec, skipId){
 /* ---------- detail ---------- */
 const byId = id => db.recipes.find(r=>r.id===id);
 function openDetail(id){
+  shotSel = null;
   view = { id:id, ticked:{}, scale:1 };
   renderDetail();
   show("detail");
@@ -1063,24 +1105,61 @@ function renderDetail(){
   $("dMade").textContent = made.length ? made.map(fmtDate).join(" · ") : "";
   $("cardMade").classList.toggle("hidden", !made.length);
 }
+let shotSel = null;    /* a Set of indexes while she is choosing, otherwise null */
 function drawShots(shots){
   const el = $("dShots");
   if(!el) return;
   el.innerHTML = "";
   const cover = coverShot(shots);
+  const picking = !!shotSel;
+  $("shotBar").classList.toggle("hidden", !picking);
+  $("shotTools").classList.toggle("hidden", picking);
+  $("shotPick").classList.toggle("hidden", shots.length < 2);
+  if(picking) $("shotN").textContent = shotSel.size
+    ? shotSel.size + (shotSel.size === 1 ? " photo" : " photos")
+    : "Tap the ones to go";
+
   if(!shots.length){
     el.innerHTML = '<div class="hint" style="margin:0 0 2px">No photos yet.</div>';
     return;
   }
   shots.forEach((sh, i)=>{
     const d = document.createElement("div");
-    d.className = "shot" + (sh === cover ? " cover" : "");
+    d.className = "shot" + (!picking && sh === cover ? " cover" : "")
+                + (picking && shotSel.has(i) ? " picked" : "");
     d.innerHTML = '<img src="' + sh.thumb + '" alt=""><span class="tag">'
-      + (sh.kind === "page" ? "page" : "dish") + '</span>';
-    d.addEventListener("click", ()=> openShot(i));
+      + (sh.kind === "page" ? "page" : "dish") + '</span>'
+      + (picking ? '<span class="pick"></span>' : '');
+    d.addEventListener("click", ()=>{
+      if(!picking) return openShot(i);
+      shotSel.has(i) ? shotSel.delete(i) : shotSel.add(i);
+      drawShots(shots);
+    });
     el.appendChild(d);
   });
 }
+$("shotPick").addEventListener("click", async ()=>{
+  shotSel = new Set();
+  drawShots(await shotsGet(view.id));
+});
+$("shotCancel").addEventListener("click", async ()=>{
+  shotSel = null;
+  drawShots(await shotsGet(view.id));
+});
+$("shotDel").addEventListener("click", async ()=>{
+  if(!shotSel || !shotSel.size){ toast("Tap the ones to go first."); return; }
+  const id = view.id, n = shotSel.size;
+  const ok = await askSheet("Delete " + n + (n === 1 ? " photo" : " photos") + "?",
+    "You cannot undo this.",
+    [{ label:"Delete " + n, value:"y", danger:true }, { label:"Keep them", value:null }]);
+  if(!ok){ return drawShots(await shotsGet(id)); }
+  const shots = (await shotsGet(id)).filter((x, i) => !shotSel.has(i));
+  await shotsPut(id, shots);
+  shotSel = null;
+  if(view.id === id) renderDetail();
+  renderHome(); renderAll();
+  toast(n + (n === 1 ? " photo deleted." : " photos deleted."));
+});
 async function openShot(i){
   const id = view.id;
   const shots = await shotsGet(id);
@@ -1183,6 +1262,19 @@ function drawCookBtn(){
   b.textContent = wakeWanted ? "Screen on \u00b7 tap to stop" : "Keep the screen on";
 }
 $("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
+
+/* so she does not have to scroll back up mid-step */
+$("peekIng").addEventListener("click", ()=>{
+  const r = byId(view.id);
+  if(!r) return;
+  const rows = (r.ingredients||[]).map((line,i)=>
+    '<div style="padding:7px 0;border-bottom:1px solid var(--grid);'
+    + (view.ticked[i] ? 'color:var(--muted);text-decoration:line-through' : '') + '">'
+    + esc(scaleLine(line, view.scale)) + '</div>').join("");
+  askSheet(view.scale === 1 ? "Ingredients"
+                            : "Ingredients \u00b7 " + SCALES.find(x=>x[0]===view.scale)[1],
+    rows || "None listed.", [{ label:"Back to the method", value:null, primary:true }]);
+});
 
 $("btnBack").addEventListener("click", ()=>{ show("recipes"); renderAll(); });
 $("btnMade").addEventListener("click", ()=>{
