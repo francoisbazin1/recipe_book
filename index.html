@@ -215,6 +215,25 @@
   .planline b{font-weight:700}
   .planhelp{font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:12px}
   .planhelp .w{font-weight:650;color:var(--ink)}
+  .seg{display:flex;gap:6px;background:var(--chip);padding:4px;border-radius:14px;margin-bottom:14px}
+  .seg button{
+    flex:1;border:none;cursor:pointer;font-family:inherit;background:none;color:var(--chip-ink);
+    font-size:13.5px;font-weight:650;padding:9px 6px;border-radius:11px;
+  }
+  .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .jobs{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+  .jobs th{
+    text-align:left;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--muted);font-weight:700;padding:0 6px 7px 0;
+  }
+  .jobs td{padding:8px 6px 8px 0;border-top:1px solid var(--grid);vertical-align:top;line-height:1.45}
+  .jobs td.m{white-space:nowrap;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .jobs td.s{color:var(--muted);font-size:12px}
+  .jobs tr.crit td:first-child{font-weight:700}
+  .jobs .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);
+    margin-right:7px;vertical-align:1px}
+  .jobs .dot.free{opacity:.32}
+  .critnote{font-size:12.5px;color:var(--ink2);line-height:1.6;margin-top:12px}
   @keyframes ding{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
@@ -428,6 +447,10 @@
     <div class="dtitle" id="dTitle"></div>
     <div class="stars" id="dStars"></div>
     <div class="dmeta" id="dMeta"></div>
+    <div class="seg" id="viewSeg">
+      <button data-view="classic">Classic</button>
+      <button data-view="engineer">Engineer</button>
+    </div>
 
     <button class="bigbtn" id="btnMade">Cooked today</button>
     <button class="cookbtn" id="btnCook"></button>
@@ -1235,6 +1258,14 @@ function renderDetail(){
   });
 
   drawCookBtn();
+  const eng = db.mode === "engineer";
+  document.querySelectorAll("#viewSeg button").forEach(b=>
+    b.classList.toggle("on", (b.dataset.view === "engineer") === eng));
+  ["cardIng","cardMth","cardNotes"].forEach(id => {
+    const el = $(id);
+    if(el && eng) el.classList.add("hidden");
+  });
+  $("cardPlan").classList.toggle("hidden", !eng);
   drawPlan(r);
   timerPresets();
   timerDraw();
@@ -1502,6 +1533,27 @@ function drawPlan(r){
   const handsOn = tasks.filter(t=>t.hands_on).reduce((n,t)=> n + Math.max(1,t.minutes||0), 0);
   const solo = soloMakespan(tasks);
 
+  /* backward pass, so the jobs that set the total time can be called out */
+  const succs = {};
+  tasks.forEach(t => (t.needs||[]).forEach(n => (succs[n] = succs[n] || []).push(t.id)));
+  const lateEnd = {};
+  const lateOf = (t, guard) => {
+    if(lateEnd[t.id] !== undefined) return lateEnd[t.id];
+    if(guard > 60) return sc.makespan;
+    const after = succs[t.id] || [];
+    let le = sc.makespan;
+    if(after.length){
+      le = Math.min.apply(null, after.map(id=>{
+        const o = tasks.find(x => x.id === id);
+        return o ? lateOf(o, guard+1) - Math.max(1, o.minutes||0) : sc.makespan;
+      }));
+    }
+    lateEnd[t.id] = le;
+    return le;
+  };
+  tasks.forEach(t => lateOf(t, 0));
+  const isCritical = t => (lateEnd[t.id] - Math.max(1, t.minutes||0)) - sc.start[t.id] < 1;
+
   const W = 340, ROW = 34, PAD_L = 8, PAD_R = 8, TOP = 16;
   const H = TOP + order.length * ROW + 20;
   const x = m => PAD_L + (m / Math.max(1,total)) * (W - PAD_L - PAD_R);
@@ -1522,6 +1574,9 @@ function drawPlan(r){
     svg += '<rect x="' + x1.toFixed(1) + '" y="' + (y+13) + '" width="' + w.toFixed(1)
         + '" height="9" rx="4.5" style="fill:var(--accent);opacity:'
         + (t.hands_on ? '1' : '.32') + '"/>';
+    if(isCritical(t))
+      svg += '<rect x="' + (x1-1.5).toFixed(1) + '" y="' + (y+11.5) + '" width="' + (w+3).toFixed(1)
+          + '" height="12" rx="6" style="fill:none;stroke:var(--ink);opacity:.45" stroke-width="1"/>';
     svg += '<text x="' + PAD_L + '" y="' + (y+9) + '" font-size="10.5" style="fill:var(--ink)">'
         + esc((t.what||"").slice(0,44)) + '</text>';
   });
@@ -1549,6 +1604,12 @@ function drawPlan(r){
     if(jobs.length) spare.push({ w:w, jobs:jobs });
   });
 
+  const rows = order.map(t =>
+    '<tr class="' + (isCritical(t) ? "crit" : "") + '">'
+    + '<td><span class="dot' + (t.hands_on ? '' : ' free') + '"></span>' + esc(t.what) + '</td>'
+    + '<td class="m">' + minsWords(Math.max(1, t.minutes||0)) + '</td>'
+    + '<td class="s">' + esc(t.station || "") + '</td></tr>').join("");
+
   out.innerHTML =
     '<div class="planline"><b>' + minsWords(total) + '</b> start to finish, '
       + '<b>' + minsWords(handsOn) + '</b> of it actually doing something.'
@@ -1565,7 +1626,10 @@ function drawPlan(r){
             + '. Nothing there waits on anything else, so it can go to someone else.').join("<br><br>")
           + '</div>'
         : '<div class="planhelp">Every job here waits on the one before it, so there is nothing '
-          + 'to run alongside and nothing to hand over.</div>');
+          + 'to run alongside and nothing to hand over.</div>')
+    + '<table class="jobs"><tr><th>Job</th><th>Takes</th><th>Where</th></tr>' + rows + '</table>'
+    + '<div class="critnote">The jobs in bold set the total time. Anything else can slip a bit '
+      + 'without the dinner being later.</div>';
 }
 
 async function makePlan(){
@@ -1729,6 +1793,14 @@ function stepMinutes(text){
   while((m = re.exec(text || ""))) push(/^h/i.test(m[3]) ? parseFloat(m[2]||m[1]) * 60 : parseFloat(m[2]||m[1]));
   return out.sort((a,b)=>a-b);
 }
+document.querySelectorAll("#viewSeg button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    db.mode = b.dataset.view;
+    save();
+    renderDetail();
+  });
+});
+
 $("cookExit").addEventListener("click", cookClose);
 $("cookIng").addEventListener("click", ()=> $("peekIng").click());
 $("btnCookMode").addEventListener("click", ()=> cookOpen(view.id));

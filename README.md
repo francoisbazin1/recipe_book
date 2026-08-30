@@ -24,11 +24,12 @@ in the browser on the phone it is installed on.
   always there to check against. Tap one to enlarge it, make it the main picture, or delete it.
 - **Per recipe** — a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
-- **The plan** — turns the method into jobs with times and dependencies, then draws them on a
+- **Classic or Engineer** — a switch at the top of every recipe. Classic is ingredients and method. Engineer is the plan: turns the method into jobs with times and dependencies, then draws them on a
   timeline: solid where you are working, pale where you are waiting. Says how long it takes start
   to finish, how much of that is hands-on, how much longer on your own, and which jobs sit inside
   the long wait and can be handed to someone else. Costs one read, like a scan, and is thrown away
-  if the method is edited.
+  if the method is edited. The jobs that set the total time (the critical path) are outlined on the
+  chart and bold in the job table.
 - **Cook it step by step** — full screen, one step at a time in large type, with the next one
   shown faintly below. Tap the step when it is done and it advances and fills the progress bar.
   Ingredients are one tap away, the minutes that step mentions are offered as timer buttons, and
