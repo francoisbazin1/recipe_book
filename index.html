@@ -449,7 +449,7 @@
     <div class="dmeta" id="dMeta"></div>
     <div class="seg" id="viewSeg">
       <button data-view="classic">Classic</button>
-      <button data-view="engineer">Engineer</button>
+      <button data-view="engineer">Timeline</button>
     </div>
 
     <button class="bigbtn" id="btnMade">Cooked today</button>
@@ -1669,20 +1669,27 @@ $("planRedo").addEventListener("click", ()=>{
 /* ---------- cooking it step by step ---------- */
 let cook = null;    /* { id, step, done:Set } */
 
+let cookPushed = false;
 function cookOpen(id){
   const r = byId(id);
   if(!r || !(r.method||[]).length){ toast("This one has no method written down."); return; }
   cook = { id:id, step:0, done:new Set() };
   $("cook").classList.add("open");
+  if(!cookPushed){ history.pushState({ cook:1 }, ""); cookPushed = true; }
   if(!wakeWanted) cookOn();          /* the screen has to stay on for this to be any use */
   cookDraw();
 }
-function cookClose(){
+/* fromBack is true when the phone's back button got us here, so we do not go back twice */
+function cookClose(fromBack){
+  if(!cook) return;
+  if(cookPushed && !fromBack){ cookPushed = false; history.back(); return; }
+  cookPushed = false;
   cook = null;
   $("cook").classList.remove("open");
   if(wakeWanted) cookOff(true);
   renderDetail();
 }
+window.addEventListener("popstate", ()=>{ if(cook) cookClose(true); });
 function cookDraw(){
   if(!cook) return;
   const r = byId(cook.id);
@@ -1801,7 +1808,7 @@ document.querySelectorAll("#viewSeg button").forEach(b=>{
   });
 });
 
-$("cookExit").addEventListener("click", cookClose);
+$("cookExit").addEventListener("click", ()=> cookClose());
 $("cookIng").addEventListener("click", ()=> $("peekIng").click());
 $("btnCookMode").addEventListener("click", ()=> cookOpen(view.id));
 
