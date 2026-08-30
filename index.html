@@ -165,6 +165,44 @@
   }
   .pill.on{display:block}
   .pill.ding{animation:ding .6s ease infinite}
+
+  /* cook mode */
+  .cook{
+    position:fixed;inset:0;z-index:45;background:var(--bg);display:none;
+    flex-direction:column;max-width:520px;margin:0 auto;
+  }
+  .cook.open{display:flex}
+  .cookhead{
+    display:flex;align-items:center;gap:10px;padding:14px 18px 8px;
+  }
+  .cookhead .who{flex:1;min-width:0}
+  .cookhead .nm{font-size:13px;font-weight:650;color:var(--ink2);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cookhead .of{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .bar{height:4px;background:var(--grid);border-radius:2px;margin:4px 18px 0;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .25s ease}
+  .cookbody{flex:1;overflow-y:auto;padding:16px 18px 8px}
+  .stepcard{
+    background:var(--surface);border-radius:20px;padding:22px 20px;cursor:pointer;
+    box-shadow:0 0 0 1px var(--ring), var(--shadow);
+  }
+  .stepcard .n{font-size:11.5px;font-weight:700;letter-spacing:.7px;color:var(--accent);
+    text-transform:uppercase;margin-bottom:10px}
+  .stepcard .tx{font-size:20px;line-height:1.5;font-weight:500}
+  .stepcard .tap{font-size:12px;color:var(--muted);margin-top:18px}
+  .nextup{font-size:13px;color:var(--muted);line-height:1.5;margin:16px 4px 0}
+  .nextup b{display:block;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:4px}
+  .done{opacity:.5}
+  .cookfoot{padding:8px 18px calc(14px + env(safe-area-inset-bottom));display:flex;
+    gap:9px;align-items:center;flex-wrap:wrap}
+  .cookfoot .chips{flex:1;min-width:0}
+  .cookclock{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
+    color:var(--accent);flex:1}
+  .sq{
+    border:none;cursor:pointer;font-family:inherit;background:var(--chip);color:var(--chip-ink);
+    font-size:13.5px;font-weight:650;padding:11px 15px;border-radius:14px;flex:none;
+  }
   @keyframes ding{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
   .filters{margin-bottom:14px}
   .filters .chips{margin-bottom:12px}
@@ -229,6 +267,12 @@
   ul.ing li::before{content:"";position:absolute;left:6px;top:16px;width:7px;height:7px;
     border-radius:50%;background:var(--accent)}
   ul.ing li.tick{color:var(--muted);text-decoration:line-through}
+  ul.ing li.head{
+    font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--ink2);padding:14px 0 5px 0;border-bottom:none;cursor:default;
+  }
+  ul.ing li.head::before{display:none}
+  ul.ing li.head:first-child{padding-top:2px}
   ol.mth{list-style:none;counter-reset:st}
   ol.mth li{
     counter-increment:st;padding:10px 0 10px 34px;position:relative;
@@ -355,7 +399,7 @@
   <section class="tab" id="tab-recipes">
     <div class="searchwrap">
       <span class="mg">🔍</span>
-      <input type="search" id="search" placeholder="Search name or ingredient" autocomplete="off">
+      <input type="search" id="search" placeholder="Search, or list ingredients with commas" autocomplete="off">
     </div>
     <div class="filters">
       <div id="srcWrap"><div class="chips" id="srcFilter"></div></div>
@@ -375,6 +419,7 @@
 
     <button class="bigbtn" id="btnMade">Cooked today</button>
     <button class="cookbtn" id="btnCook"></button>
+    <button class="bigbtn" id="btnCookMode" style="margin:0 0 14px">Cook it step by step</button>
 
     <div class="card" id="cardTimer">
       <h2>TIMER</h2>
@@ -487,6 +532,17 @@
     <div class="t" id="busyT">Reading it…</div>
     <div class="s" id="busyS">Ten or twenty seconds.</div>
   </div>
+</div>
+
+<div class="cook" id="cook">
+  <div class="cookhead">
+    <div class="who"><div class="nm" id="cookName"></div><div class="of" id="cookOf"></div></div>
+    <button class="sq" id="cookIng">Ingredients</button>
+    <button class="sq" id="cookExit">Close</button>
+  </div>
+  <div class="bar"><i id="cookBar"></i></div>
+  <div class="cookbody" id="cookBody"></div>
+  <div class="cookfoot" id="cookFoot"></div>
 </div>
 
 <button class="pill" id="timerPill"></button>
@@ -911,8 +967,26 @@ $("tagToggle").addEventListener("click", ()=>{
   else tagsOpen = !tagsOpen;
   renderAll();
 });
+/* "chicken, spinach" means both, and says which lines matched */
+function multiHit(r, terms){
+  const hits = [];
+  for(const t of terms){
+    const ing = (r.ingredients||[]).find(i => !isHeading(i) && i.toLowerCase().includes(t));
+    if(ing){ hits.push(ing); continue; }
+    if((r.title||"").toLowerCase().includes(t)) { hits.push(null); continue; }
+    if((r.tags||[]).some(x => x.toLowerCase().includes(t))) { hits.push(null); continue; }
+    if((r.method||[]).some(m => m.toLowerCase().includes(t))) { hits.push(null); continue; }
+    return { ok:false };
+  }
+  const named = hits.filter(Boolean);
+  return { ok:true, hint: named.length ? named.join(" \u00b7 ") : null };
+}
 function searchHit(r, q){
   if(!q) return { ok:true, hint:null };
+  if(q.indexOf(",") >= 0){
+    const terms = q.split(",").map(t => t.trim()).filter(Boolean);
+    if(terms.length) return multiHit(r, terms);
+  }
   const inTitle = (r.title||"").toLowerCase().includes(q);
   const tag = (r.tags||[]).find(t => t.toLowerCase().includes(q));
   const ing = (r.ingredients||[]).find(i => i.toLowerCase().includes(q));
@@ -947,6 +1021,11 @@ function renderAll(){
   out.forEach(p => el.appendChild(recipeCard(p[0], p[1])));
 }
 $("search").addEventListener("input", renderAll);
+
+/* "For the marinade:" and the like head a group rather than being an ingredient */
+const isHeading = line => /:\s*$/.test(String(line||"").trim())
+                       && String(line).trim().length < 46
+                       && !/^\s*[\d\u00bd\u00bc\u00be]/.test(line);
 
 /* ---------- making more or less of it ---------- */
 const UNI_FRAC = { "½":0.5, "¼":0.25, "¾":0.75, "⅓":1/3, "⅔":2/3, "⅛":0.125 };
@@ -1032,7 +1111,7 @@ function overlap(a, b){
 }
 const fingerprint = r => ({
   t: new Set(words(r.title)),
-  i: new Set(words((r.ingredients||[]).join(" ")))
+  i: new Set(words((r.ingredients||[]).filter(x => !isHeading(x)).join(" ")))
 });
 /* the name matters a bit more than the ingredients: two curries share a lot of spices */
 function findSimilar(rec, skipId){
@@ -1103,6 +1182,12 @@ function renderDetail(){
   const ing = $("dIng"); ing.innerHTML = "";
   (r.ingredients||[]).forEach((line,i)=>{
     const li = document.createElement("li");
+    if(isHeading(line)){
+      li.className = "head";
+      li.textContent = line.replace(/:\s*$/, "");
+      ing.appendChild(li);
+      return;
+    }
     li.textContent = scaleLine(line, view.scale);
     if(view.ticked[i]) li.classList.add("tick");
     li.addEventListener("click", ()=>{ view.ticked[i] = !view.ticked[i]; li.classList.toggle("tick"); });
@@ -1293,6 +1378,137 @@ function drawCookBtn(){
 }
 $("btnCook").addEventListener("click", ()=>{ wakeWanted ? cookOff() : cookOn(); });
 
+/* ---------- cooking it step by step ---------- */
+let cook = null;    /* { id, step, done:Set } */
+
+function cookOpen(id){
+  const r = byId(id);
+  if(!r || !(r.method||[]).length){ toast("This one has no method written down."); return; }
+  cook = { id:id, step:0, done:new Set() };
+  $("cook").classList.add("open");
+  if(!wakeWanted) cookOn();          /* the screen has to stay on for this to be any use */
+  cookDraw();
+}
+function cookClose(){
+  cook = null;
+  $("cook").classList.remove("open");
+  if(wakeWanted) cookOff(true);
+  renderDetail();
+}
+function cookDraw(){
+  if(!cook) return;
+  const r = byId(cook.id);
+  if(!r) return cookClose();
+  const steps = r.method || [];
+  const i = cook.step;
+
+  $("cookName").textContent = r.title;
+  $("cookOf").textContent = i < steps.length
+    ? "Step " + (i+1) + " of " + steps.length
+    : "All " + steps.length + " steps done";
+  $("cookBar").style.width = Math.round((cook.done.size / steps.length) * 100) + "%";
+
+  const body = $("cookBody");
+  body.innerHTML = "";
+
+  if(i >= steps.length){
+    const d = document.createElement("div");
+    d.className = "stepcard";
+    d.innerHTML = '<div class="n">Finished</div><div class="tx">That is the lot.</div>';
+    body.appendChild(d);
+    const b = document.createElement("button");
+    b.className = "bigbtn"; b.style.marginTop = "18px";
+    b.textContent = "Cooked today";
+    b.addEventListener("click", ()=>{
+      const t = todayISO();
+      r.made = r.made || [];
+      if(!r.made.includes(t)) r.made.push(t);
+      save(); cookClose(); renderHome(); renderAll(); toast("Cooked today.");
+    });
+    body.appendChild(b);
+    const b2 = document.createElement("button");
+    b2.className = "ghostbtn wide"; b2.style.marginTop = "10px";
+    b2.textContent = "Back to the last step";
+    b2.addEventListener("click", ()=>{ cook.step = steps.length - 1; cookDraw(); });
+    body.appendChild(b2);
+    cookFoot(r, "");
+    return;
+  }
+
+  const card = document.createElement("div");
+  card.className = "stepcard";
+  card.innerHTML = '<div class="n">Step ' + (i+1) + '</div>'
+    + '<div class="tx">' + esc(steps[i]) + '</div>'
+    + '<div class="tap">Tap when this one is done</div>';
+  card.addEventListener("click", ()=>{
+    cook.done.add(i);
+    cook.step = i + 1;
+    cookDraw();
+  });
+  body.appendChild(card);
+
+  if(steps[i+1]){
+    const nx = document.createElement("div");
+    nx.className = "nextup";
+    nx.innerHTML = "<b>Next</b>" + esc(steps[i+1]);
+    body.appendChild(nx);
+  }
+  cookFoot(r, steps[i]);
+}
+
+/* the footer: minutes this step mentions, or the clock once one is running */
+function cookFoot(r, stepText){
+  const foot = $("cookFoot");
+  foot.innerHTML = "";
+  const back = document.createElement("button");
+  back.className = "sq";
+  back.textContent = "Back";
+  back.disabled = cook.step === 0;
+  back.style.opacity = cook.step === 0 ? ".4" : "1";
+  back.addEventListener("click", ()=>{
+    if(cook.step === 0) return;
+    cook.step--; cook.done.delete(cook.step); cookDraw();
+  });
+
+  if(timer && timerLeft() > 0){
+    const c = document.createElement("div");
+    c.className = "cookclock";
+    c.id = "cookClock";
+    c.textContent = mmss(timerLeft());
+    const stop = document.createElement("button");
+    stop.className = "sq"; stop.textContent = "Stop";
+    stop.addEventListener("click", ()=>{ timerStop(); cookDraw(); });
+    foot.appendChild(back); foot.appendChild(c); foot.appendChild(stop);
+    return;
+  }
+  const mins = stepMinutes(stepText);
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  mins.slice(0,3).forEach(n=>{
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = minsWords(n);
+    b.addEventListener("click", ()=>{
+      view.id = cook.id;              /* so the timer knows which recipe it belongs to */
+      timerStart(n); cookDraw();
+    });
+    chips.appendChild(b);
+  });
+  foot.appendChild(back);
+  foot.appendChild(chips);
+}
+function stepMinutes(text){
+  const out = [];
+  const push = n => { n = Math.round(n); if(n > 0 && n <= 720 && out.indexOf(n) < 0) out.push(n); };
+  const re = /(\d+(?:\.\d+)?)\s*(?:-|to|\u2013)?\s*(\d+(?:\.\d+)?)?\s*(hours?|hrs?|minutes?|mins?)\b/gi;
+  let m;
+  while((m = re.exec(text || ""))) push(/^h/i.test(m[3]) ? parseFloat(m[2]||m[1]) * 60 : parseFloat(m[2]||m[1]));
+  return out.sort((a,b)=>a-b);
+}
+$("cookExit").addEventListener("click", cookClose);
+$("cookIng").addEventListener("click", ()=> $("peekIng").click());
+$("btnCookMode").addEventListener("click", ()=> cookOpen(view.id));
+
 /* ---------- the timer ---------- */
 const TKEY = "recipe.timer";
 let timer = null;          /* { endAt, mins, recipeId, title, rang } */
@@ -1349,6 +1565,13 @@ function timerRang(){
 }
 function timerDraw(){
   const pill = $("timerPill");
+  if(cook){
+    const c = $("cookClock");
+    if(c && timer) c.textContent = timerLeft() > 0 ? mmss(timerLeft()) : "Time's up";
+    if(timer && timerLeft() <= 0){ timerRang(); cookDraw(); }
+    pill.classList.remove("on","ding");
+    return;
+  }
   const onThis = timer && timer.recipeId === view.id
               && $("tab-detail").classList.contains("active");
   if(!timer){
@@ -1433,9 +1656,12 @@ $("peekIng").addEventListener("click", ()=>{
   const r = byId(view.id);
   if(!r) return;
   const rows = (r.ingredients||[]).map((line,i)=>
-    '<div style="padding:7px 0;border-bottom:1px solid var(--grid);'
-    + (view.ticked[i] ? 'color:var(--muted);text-decoration:line-through' : '') + '">'
-    + esc(scaleLine(line, view.scale)) + '</div>').join("");
+    isHeading(line)
+      ? '<div style="padding:12px 0 3px;font-size:11.5px;font-weight:700;letter-spacing:.6px;'
+        + 'text-transform:uppercase;color:var(--ink2)">' + esc(line.replace(/:\s*$/,"")) + '</div>'
+      : '<div style="padding:7px 0;border-bottom:1px solid var(--grid);'
+        + (view.ticked[i] ? 'color:var(--muted);text-decoration:line-through' : '') + '">'
+        + esc(scaleLine(line, view.scale)) + '</div>').join("");
   askSheet(view.scale === 1 ? "Ingredients"
                             : "Ingredients \u00b7 " + SCALES.find(x=>x[0]===view.scale)[1],
     rows || "None listed.", [{ label:"Back to the method", value:null, primary:true }]);
@@ -1785,6 +2011,7 @@ const PROMPT =
 "Transcribe the recipe in these pictures. They may be photos of a cookbook, a handwritten card, or a screenshot of a website.\n\n" +
 "Rules:\n" +
 "- Copy the ingredients exactly as written, one line each, keeping the quantities and units as they appear. Do not convert or round anything.\n" +
+"- If the page groups the ingredients under headings such as \"For the sauce\" or \"Topping\", keep each heading as its own line in the ingredients array, ending with a colon, in the right place. Do not invent groupings that are not on the page.\n" +
 "- Split the method into short numbered steps, one step per array item. Keep the original wording where you can.\n" +
 "- title: the recipe name only.\n" +
 "- servings: how many it serves, as written (\"4\", \"makes 12\"). Empty string if it is not stated.\n" +

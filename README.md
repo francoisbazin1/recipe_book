@@ -14,7 +14,9 @@ in the browser on the phone it is installed on.
   magazine, RecipeTin Eats, and whatever else she adds). The Recipes tab filters by it, and the
   scanner fills it in from the page.
 - **Search by name or by ingredient** — typing `butter` finds every recipe with butter in it
-  and tells you which line matched. Tag chips narrow it further.
+  and tells you which line matched. Commas mean all of them: `spinach, chicken` finds only
+  recipes with both, which is the what-is-in-the-fridge question. Filter by source first, tags
+  behind a toggle.
 - **Cooked lately / maybe tonight** — the kitchen page shows what you have made recently and
   nudges the ones you have not made in a while.
 - **Photos, as many as you like** — of the finished dish and of the page it came from, each
@@ -22,6 +24,12 @@ in the browser on the phone it is installed on.
   always there to check against. Tap one to enlarge it, make it the main picture, or delete it.
 - **Per recipe** — a star rating, tick-off ingredients while you cook, notes, a dated
   comment each time you make it, and a list of every date it was made.
+- **Cook it step by step** — full screen, one step at a time in large type, with the next one
+  shown faintly below. Tap the step when it is done and it advances and fills the progress bar.
+  Ingredients are one tap away, the minutes that step mentions are offered as timer buttons, and
+  the screen is held awake for as long as you are in it.
+- **Ingredient groups** — an ingredient line ending in a colon ("For the sauce:") becomes a
+  heading, the way a cookbook lays it out. The scanner keeps the groupings off the page.
 - **A timer** — on the recipe, with the minutes the recipe itself mentions offered as buttons
   (it reads "simmer for 15 mins" out of the method). Leave the recipe and it follows you as a pill
   above the nav; tap it to go back. Beeps and buzzes when it is up, and survives a reload.

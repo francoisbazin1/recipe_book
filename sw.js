@@ -1,4 +1,4 @@
-const CACHE = "recipe-book-v17";
+const CACHE = "recipe-book-v19";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
