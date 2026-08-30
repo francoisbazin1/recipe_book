@@ -542,11 +542,12 @@
     <div class="card">
       <h2>KEEPING IT SAFE</h2>
       <div class="exportrow">
+        <button class="ghostbtn" id="btnShareBackup">Send a copy to yourself</button>
         <button class="ghostbtn" id="btnBackup">Save a copy</button>
         <button class="ghostbtn" id="btnRestore">Bring a copy back</button>
         <button class="ghostbtn" id="btnCsv">As a spreadsheet</button>
       </div>
-      <div class="hint">Everything lives on this phone. Do this now and then, and before changing phones. One file, photos and all, so it will not be small. Bringing a copy back can add to what is here rather than replace it.</div>
+      <div class="hint">Everything lives on this phone, so a copy kept only here is lost with the phone. <b>Send a copy to yourself</b> opens the share sheet: pick your email (or Drive) and it is safe anywhere. One file, photos and all, so it will not be small. Bringing a copy back can add to what is here rather than replace it.</div>
     </div>
     <div class="card">
       <h2>ABOUT</h2>
@@ -2517,16 +2518,33 @@ function download(name, text, type){
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 200);
 }
+async function buildBackup(){
+  const photos = {};
+  for(const k of await imgKeys()){
+    if(db.recipes.some(r=>r.id===k)) photos[k] = await imgGet(k);
+  }
+  return JSON.stringify({ v:1, saved: todayISO(), book: db, photos: photos });
+}
 $("btnBackup").addEventListener("click", async ()=>{
   busy(true, "Saving…", "Photos take a moment.");
   try{
-    const photos = {};
-    for(const k of await imgKeys()){
-      if(db.recipes.some(r=>r.id===k)) photos[k] = await imgGet(k);
-    }
-    const out = { v:1, saved: todayISO(), book: db, photos: photos };
-    download("my-recipes-" + todayISO() + ".json", JSON.stringify(out));
+    download("my-recipes-" + todayISO() + ".json", await buildBackup());
     busy(false); toast("Saved to your downloads.");
+  }catch(e){ busy(false); alert("Backup failed: " + e.message); }
+});
+$("btnShareBackup").addEventListener("click", async ()=>{
+  busy(true, "Getting it ready…", "Photos take a moment.");
+  try{
+    const text = await buildBackup();
+    const file = new File([text], "my-recipes-" + todayISO() + ".json", {type:"application/json"});
+    busy(false);
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:"Recipe book backup"}); }
+      catch(e){ /* share sheet closed */ }
+    }else{
+      download("my-recipes-" + todayISO() + ".json", text);
+      toast("Sharing is not available here, so it went to your downloads instead.");
+    }
   }catch(e){ busy(false); alert("Backup failed: " + e.message); }
 });
 $("btnRestore").addEventListener("click", ()=> $("fileRestore").click());
